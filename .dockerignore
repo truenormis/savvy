@@ -1,0 +1,9 @@
+/vendor
+/node_modules
+/.git
+/.env
+/storage/*.key
+/bootstrap/cache/*.php
+/.idea
+/.vscode
+public/build

@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8081:80"
+#    volumes:
+#      - data:/data
+    restart: unless-stopped
+
+#volumes:
+#  data:

@@ -1,0 +1,207 @@
+import { ColumnDef } from '@tanstack/react-table'
+import { Transaction } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { MoreHorizontal, Pencil, Trash2, Copy, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ChevronRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { cn } from '@/lib/utils'
+
+const TYPE_CONFIG = {
+    income: { icon: ArrowDownLeft, color: 'text-green-600', bg: 'bg-green-100', label: 'Income' },
+    expense: { icon: ArrowUpRight, color: 'text-red-600', bg: 'bg-red-100', label: 'Expense' },
+    transfer: { icon: ArrowLeftRight, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Transfer' },
+}
+
+export function createTransactionColumns(
+    onDelete: (id: number) => void,
+    onDuplicate: (id: number) => void
+): ColumnDef<Transaction>[] {
+    return [
+        {
+            id: 'expand',
+            header: '',
+            size: 32,
+            cell: ({ row }) => {
+                const itemsCount = row.original.itemsCount ?? row.original.items?.length ?? 0
+                if (itemsCount <= 1) return null
+                return (
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => row.toggleExpanded()}
+                        className="size-6"
+                    >
+                        <ChevronRight
+                            className={cn(
+                                'size-4 transition-transform',
+                                row.getIsExpanded() && 'rotate-90'
+                            )}
+                        />
+                    </Button>
+                )
+            },
+        },
+        {
+            accessorKey: 'date',
+            header: 'Date',
+            cell: ({ row }) => (
+                <span className="font-mono text-sm">
+                    {new Date(row.original.date).toLocaleDateString()}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'type',
+            header: 'Type',
+            cell: ({ row }) => {
+                const type = row.original.type
+                const config = TYPE_CONFIG[type]
+                const Icon = config.icon
+                return (
+                    <Badge variant="secondary" className={cn('gap-1', config.bg, config.color)}>
+                        <Icon className="size-3" />
+                        {config.label}
+                    </Badge>
+                )
+            },
+        },
+        {
+            accessorKey: 'description',
+            header: 'Description',
+            cell: ({ row }) => {
+                const { description, category, account, toAccount, type, itemsCount, tags } = row.original
+                return (
+                    <div className="space-y-1">
+                        <div className="font-medium">
+                            {description || (
+                                type === 'transfer'
+                                    ? `${account.name} → ${toAccount?.name}`
+                                    : category?.name
+                            )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {type === 'transfer' ? (
+                                <span>{account.name} → {toAccount?.name}</span>
+                            ) : (
+                                <span>
+                                    {account.name}
+                                    {category && ` · ${category.icon} ${category.name}`}
+                                </span>
+                            )}
+                            {itemsCount != null && itemsCount > 0 && (
+                                <span className="ml-2 text-primary">({itemsCount} items)</span>
+                            )}
+                        </div>
+                        {tags && tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                                {tags.map((tag) => (
+                                    <Badge key={tag.id} variant="outline" className="text-xs px-1.5 py-0">
+                                        #{tag.name}
+                                    </Badge>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )
+            },
+        },
+        {
+            accessorKey: 'amount',
+            header: () => <div className="text-right">Amount</div>,
+            cell: ({ row }) => {
+                const { type, amount, toAmount, account, toAccount } = row.original
+                const isIncome = type === 'income'
+                const isTransfer = type === 'transfer'
+
+                return (
+                    <div className="text-right space-y-1">
+                        <div className={cn(
+                            'font-mono font-semibold',
+                            isIncome ? 'text-green-600' : isTransfer ? 'text-blue-600' : 'text-red-600'
+                        )}>
+                            {isIncome ? '+' : '-'}{amount.toFixed(2)} {account.currency?.symbol}
+                        </div>
+                        {isTransfer && toAmount && toAccount && (
+                            <div className="text-xs text-muted-foreground font-mono">
+                                → +{toAmount.toFixed(2)} {toAccount.currency?.symbol}
+                            </div>
+                        )}
+                    </div>
+                )
+            },
+        },
+        {
+            id: 'actions',
+            cell: ({ row }) => {
+                const transaction = row.original
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon-sm">
+                                <MoreHorizontal className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                                <Link to={`/transactions/${transaction.id}/edit`}>
+                                    <Pencil className="mr-2 size-4" />
+                                    Edit
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onDuplicate(transaction.id)}>
+                                <Copy className="mr-2 size-4" />
+                                Duplicate
+                            </DropdownMenuItem>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem
+                                        onSelect={(e) => e.preventDefault()}
+                                        className="text-destructive focus:text-destructive"
+                                    >
+                                        <Trash2 className="mr-2 size-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete transaction?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete
+                                            this transaction and update account balances.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={() => onDelete(transaction.id)}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                            Delete
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )
+            },
+        },
+    ]
+}
