@@ -13,11 +13,9 @@ else
     APP_KEY="base64:$(openssl rand -base64 32)"
 
     cat > $ENV_FILE << EOF
-APP_NAME=Money
-#APP_ENV=production
-#APP_DEBUG=false
-APP_ENV=local
-APP_DEBUG=true
+APP_NAME=Savvy
+APP_ENV=production
+APP_DEBUG=false
 APP_URL=http://localhost
 
 APP_KEY=$APP_KEY

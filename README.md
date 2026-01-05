@@ -24,7 +24,7 @@
 
 ## ⚡ Quick Start
 ```bash
-docker run -d -p 3000:80 -v savvy-data:/data truenormis/savvy
+docker run -d -p 3000:80 -v savvy-data:/data truenormis/savvy:latest
 ```
 
 Open `localhost:3000`.
