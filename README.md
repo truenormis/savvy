@@ -33,6 +33,7 @@ Open `localhost:3000`.
 
 - **Multi-currency** — any fiat or crypto, transfers between them
 - **Base currency** — choose your own for reports
+- **Debts** — track loans and borrowings
 - **Categories & tags** — flexible organization
 - **Budgets** — set and track limits
 - **Analytics** — clear visual charts
