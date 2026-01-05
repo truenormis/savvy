@@ -2,170 +2,104 @@
 
 namespace App\Http\Controllers;
 
-use App\DTOs\ReportConfigData;
-use App\Enums\ReportCompareWith;
-use App\Enums\ReportGroupBy;
-use App\Enums\ReportMetric;
-use App\Enums\ReportType;
-use App\Http\Requests\ReportRequest;
-use App\Services\ReportService;
+use App\DTOs\ReportFilterData;
+use App\Http\Requests\Report\CashFlowRequest;
+use App\Http\Requests\Report\OverviewRequest;
+use App\Http\Requests\Report\TransactionReportRequest;
+use App\Services\Reports\CashFlowReportService;
+use App\Services\Reports\ExpenseReportService;
+use App\Services\Reports\NetWorthReportService;
+use App\Services\Reports\OverviewReportService;
+use App\Services\Reports\TransactionReportService;
 use Illuminate\Http\JsonResponse;
 
 class ReportController extends Controller
 {
     public function __construct(
-        private ReportService $reportService
+        private OverviewReportService $overviewService,
+        private CashFlowReportService $cashFlowService,
+        private ExpenseReportService $expenseService,
+        private TransactionReportService $transactionService,
+        private NetWorthReportService $netWorthService
     ) {}
 
-    /**
-     * Generate a report based on configuration
-     */
-    public function generate(ReportRequest $request): JsonResponse
+    public function overview(OverviewRequest $request): JsonResponse
     {
-        $config = ReportConfigData::fromArray($request->validated());
-        $report = $this->reportService->generate($config);
-
-        return response()->json($report);
+        $filters = ReportFilterData::fromArray($request->validated());
+        return response()->json($this->overviewService->getMetrics($filters));
     }
 
-    /**
-     * Get available report options for the frontend
-     */
-    public function options(): JsonResponse
+    public function moneyFlow(OverviewRequest $request): JsonResponse
     {
-        return response()->json([
-            'types' => array_map(fn($t) => [
-                'value' => $t->value,
-                'label' => $this->getTypeLabel($t),
-            ], ReportType::cases()),
-
-            'group_by' => array_map(fn($g) => [
-                'value' => $g->value,
-                'label' => $this->getGroupByLabel($g),
-            ], ReportGroupBy::cases()),
-
-            'metrics' => array_map(fn($m) => [
-                'value' => $m->value,
-                'label' => $this->getMetricLabel($m),
-            ], ReportMetric::cases()),
-
-            'compare_with' => array_map(fn($c) => [
-                'value' => $c->value,
-                'label' => $this->getCompareWithLabel($c),
-            ], ReportCompareWith::cases()),
-
-            'presets' => $this->getPresets(),
-        ]);
+        $filters = ReportFilterData::fromArray($request->validated());
+        return response()->json($this->cashFlowService->getMoneyFlow($filters));
     }
 
-    private function getTypeLabel(ReportType $type): string
+    public function expensePace(OverviewRequest $request): JsonResponse
     {
-        return match ($type) {
-            ReportType::Expenses => 'Expenses',
-            ReportType::Income => 'Income',
-            ReportType::ExpensesAndIncome => 'Expenses & Income',
-            ReportType::Balance => 'Balance',
-            ReportType::CashFlow => 'Cash Flow',
-            ReportType::Budgets => 'Budgets',
-        };
+        $filters = ReportFilterData::fromArray($request->validated());
+        return response()->json($this->expenseService->getPace($filters));
     }
 
-    private function getGroupByLabel(ReportGroupBy $groupBy): string
+    public function expensesByCategory(OverviewRequest $request): JsonResponse
     {
-        return match ($groupBy) {
-            ReportGroupBy::Categories => 'By Categories',
-            ReportGroupBy::Days => 'By Days',
-            ReportGroupBy::Weeks => 'By Weeks',
-            ReportGroupBy::Months => 'By Months',
-            ReportGroupBy::Accounts => 'By Accounts',
-            ReportGroupBy::Tags => 'By Tags',
-            ReportGroupBy::None => 'No Grouping',
-        };
+        $filters = ReportFilterData::fromArray($request->validated());
+        return response()->json($this->expenseService->getByCategory($filters));
     }
 
-    private function getMetricLabel(ReportMetric $metric): string
+    public function cashFlowOverTime(CashFlowRequest $request): JsonResponse
     {
-        return match ($metric) {
-            ReportMetric::Sum => 'Sum',
-            ReportMetric::Count => 'Transaction Count',
-            ReportMetric::Average => 'Average',
-            ReportMetric::Min => 'Minimum',
-            ReportMetric::Max => 'Maximum',
-            ReportMetric::Median => 'Median',
-            ReportMetric::PercentOfTotal => '% of Total',
-            ReportMetric::PercentOfIncome => '% of Income',
-        };
+        $filters = ReportFilterData::fromArray($request->validated());
+        $groupBy = $request->validated('group_by', 'day');
+        return response()->json($this->cashFlowService->getOverTime($filters, $groupBy));
     }
 
-    private function getCompareWithLabel(ReportCompareWith $compareWith): string
+    public function activityHeatmap(OverviewRequest $request): JsonResponse
     {
-        return match ($compareWith) {
-            ReportCompareWith::PreviousPeriod => 'Previous Period',
-            ReportCompareWith::SamePeriodLastYear => 'Same Period Last Year',
-            ReportCompareWith::Budget => 'Budget',
-        };
+        $filters = ReportFilterData::fromArray($request->validated());
+        return response()->json($this->expenseService->getHeatmap($filters));
     }
 
-    private function getPresets(): array
+    public function transactionSummary(TransactionReportRequest $request): JsonResponse
     {
-        $now = now();
+        $filters = ReportFilterData::fromArray($request->validated());
+        $type = $request->validated('type');
+        return response()->json($this->transactionService->getSummary($filters, $type));
+    }
 
-        return [
-            [
-                'label' => 'This Week',
-                'start_date' => $now->copy()->startOfWeek()->toDateString(),
-                'end_date' => $now->copy()->endOfWeek()->toDateString(),
-            ],
-            [
-                'label' => 'Last Week',
-                'start_date' => $now->copy()->subWeek()->startOfWeek()->toDateString(),
-                'end_date' => $now->copy()->subWeek()->endOfWeek()->toDateString(),
-            ],
-            [
-                'label' => 'This Month',
-                'start_date' => $now->copy()->startOfMonth()->toDateString(),
-                'end_date' => $now->copy()->endOfMonth()->toDateString(),
-            ],
-            [
-                'label' => 'Last Month',
-                'start_date' => $now->copy()->subMonth()->startOfMonth()->toDateString(),
-                'end_date' => $now->copy()->subMonth()->endOfMonth()->toDateString(),
-            ],
-            [
-                'label' => 'This Quarter',
-                'start_date' => $now->copy()->startOfQuarter()->toDateString(),
-                'end_date' => $now->copy()->endOfQuarter()->toDateString(),
-            ],
-            [
-                'label' => 'Last Quarter',
-                'start_date' => $now->copy()->subQuarter()->startOfQuarter()->toDateString(),
-                'end_date' => $now->copy()->subQuarter()->endOfQuarter()->toDateString(),
-            ],
-            [
-                'label' => 'This Year',
-                'start_date' => $now->copy()->startOfYear()->toDateString(),
-                'end_date' => $now->copy()->endOfYear()->toDateString(),
-            ],
-            [
-                'label' => 'Last Year',
-                'start_date' => $now->copy()->subYear()->startOfYear()->toDateString(),
-                'end_date' => $now->copy()->subYear()->endOfYear()->toDateString(),
-            ],
-            [
-                'label' => 'Last 30 Days',
-                'start_date' => $now->copy()->subDays(29)->toDateString(),
-                'end_date' => $now->toDateString(),
-            ],
-            [
-                'label' => 'Last 90 Days',
-                'start_date' => $now->copy()->subDays(89)->toDateString(),
-                'end_date' => $now->toDateString(),
-            ],
-            [
-                'label' => 'Last 12 Months',
-                'start_date' => $now->copy()->subMonths(11)->startOfMonth()->toDateString(),
-                'end_date' => $now->copy()->endOfMonth()->toDateString(),
-            ],
-        ];
+    public function transactionsByCategory(TransactionReportRequest $request): JsonResponse
+    {
+        $filters = ReportFilterData::fromArray($request->validated());
+        $type = $request->validated('type');
+        return response()->json($this->transactionService->getByCategory($filters, $type));
+    }
+
+    public function transactionDynamics(TransactionReportRequest $request): JsonResponse
+    {
+        $filters = ReportFilterData::fromArray($request->validated());
+        $type = $request->validated('type');
+        $groupBy = $request->validated('group_by', 'day');
+        return response()->json($this->transactionService->getDynamics($filters, $type, $groupBy));
+    }
+
+    public function topTransactions(TransactionReportRequest $request): JsonResponse
+    {
+        $filters = ReportFilterData::fromArray($request->validated());
+        $type = $request->validated('type');
+        $limit = $request->validated('limit', 10);
+        return response()->json($this->transactionService->getTop($filters, $type, $limit));
+    }
+
+    public function netWorth(OverviewRequest $request): JsonResponse
+    {
+        $filters = ReportFilterData::fromArray($request->validated());
+        return response()->json($this->netWorthService->getCurrent($filters));
+    }
+
+    public function netWorthHistory(CashFlowRequest $request): JsonResponse
+    {
+        $filters = ReportFilterData::fromArray($request->validated());
+        $groupBy = $request->validated('group_by', 'day');
+        return response()->json($this->netWorthService->getHistory($filters, $groupBy));
     }
 }

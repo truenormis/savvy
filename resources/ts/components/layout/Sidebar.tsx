@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3 } from 'lucide-react'
+import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 import {
     Sidebar,
@@ -22,6 +22,7 @@ const mainItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/transactions', icon: Receipt, label: 'Transactions' },
     { to: '/budgets', icon: PiggyBank, label: 'Budgets' },
+    { to: '/debts', icon: HandCoins, label: 'Debts' },
     { to: '/reports', icon: BarChart3, label: 'Reports' },
 ]
 

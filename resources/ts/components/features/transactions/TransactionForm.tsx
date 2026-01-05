@@ -22,8 +22,10 @@ import {
 import { transactionSchema, TransactionFormValues } from '@/schemas/transactions'
 import { useAccounts, useCategories, useTags } from '@/hooks'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react'
+import { Plus, Trash2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Wallet } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { ACCOUNT_TYPE_CONFIG } from '@/constants'
+import type { AccountType } from '@/types'
 
 const TRANSACTION_TYPES = [
     { value: 'income', label: 'Income', icon: ArrowDownLeft, color: 'text-green-600' },
@@ -44,7 +46,7 @@ export function TransactionForm({
     isSubmitting,
     submitLabel = 'Save',
 }: TransactionFormProps) {
-    const { data: accounts } = useAccounts({ active: true })
+    const { data: accounts } = useAccounts({ active: true, exclude_debts: true })
     const { data: categories } = useCategories()
     const { data: tags } = useTags()
 
@@ -273,17 +275,24 @@ export function TransactionForm({
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {accounts?.map((account) => (
-                                            <SelectItem
-                                                key={account.id}
-                                                value={account.id.toString()}
-                                            >
-                                                <span>{account.name}</span>
-                                                <span className="text-muted-foreground ml-2">
-                                                    {account.currency?.symbol}
-                                                </span>
-                                            </SelectItem>
-                                        ))}
+                                        {accounts?.map((account) => {
+                                            const config = ACCOUNT_TYPE_CONFIG[account.type as AccountType]
+                                            const Icon = config?.icon || Wallet
+                                            return (
+                                                <SelectItem
+                                                    key={account.id}
+                                                    value={account.id.toString()}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <Icon className={cn('size-4', config?.textColor)} />
+                                                        <span>{account.name}</span>
+                                                        <span className="text-muted-foreground">
+                                                            {account.currency?.symbol}
+                                                        </span>
+                                                    </div>
+                                                </SelectItem>
+                                            )
+                                        })}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -311,17 +320,24 @@ export function TransactionForm({
                                         <SelectContent>
                                             {accounts
                                                 ?.filter(a => a.id !== Number(accountId))
-                                                .map((account) => (
-                                                    <SelectItem
-                                                        key={account.id}
-                                                        value={account.id.toString()}
-                                                    >
-                                                        <span>{account.name}</span>
-                                                        <span className="text-muted-foreground ml-2">
-                                                            {account.currency?.symbol}
-                                                        </span>
-                                                    </SelectItem>
-                                                ))}
+                                                .map((account) => {
+                                                    const config = ACCOUNT_TYPE_CONFIG[account.type as AccountType]
+                                                    const Icon = config?.icon || Wallet
+                                                    return (
+                                                        <SelectItem
+                                                            key={account.id}
+                                                            value={account.id.toString()}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <Icon className={cn('size-4', config?.textColor)} />
+                                                                <span>{account.name}</span>
+                                                                <span className="text-muted-foreground">
+                                                                    {account.currency?.symbol}
+                                                                </span>
+                                                            </div>
+                                                        </SelectItem>
+                                                    )
+                                                })}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ColumnDef } from '@tanstack/react-table'
-import { Pencil, Trash2, MoreHorizontal, Landmark, Wallet, Bitcoin } from 'lucide-react'
+import { Pencil, Trash2, MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -21,13 +21,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Account, AccountType } from '@/types'
-
-const TYPE_CONFIG: Record<AccountType, { icon: typeof Landmark; label: string; color: string }> = {
-    bank: { icon: Landmark, label: 'Bank', color: 'bg-blue-100 text-blue-700' },
-    cash: { icon: Wallet, label: 'Cash', color: 'bg-green-100 text-green-700' },
-    crypto: { icon: Bitcoin, label: 'Crypto', color: 'bg-orange-100 text-orange-700' },
-}
+import { Account } from '@/types'
+import { ACCOUNT_TYPE_CONFIG } from '@/constants'
 
 function formatBalance(amount: number, currency?: { symbol: string; decimals: number }) {
     if (!currency) return amount.toFixed(2)
@@ -41,7 +36,7 @@ export const createAccountColumns = (
         accessorKey: 'name',
         header: 'Account',
         cell: ({ row }) => {
-            const config = TYPE_CONFIG[row.original.type]
+            const config = ACCOUNT_TYPE_CONFIG[row.original.type]
             const Icon = config.icon
 
             return (
@@ -63,7 +58,7 @@ export const createAccountColumns = (
         accessorKey: 'type',
         header: 'Type',
         cell: ({ row }) => {
-            const config = TYPE_CONFIG[row.original.type]
+            const config = ACCOUNT_TYPE_CONFIG[row.original.type]
             return (
                 <Badge variant="secondary" className={config.color}>
                     {config.label}

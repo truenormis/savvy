@@ -14,14 +14,29 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Wallet, ArrowDownLeft, ArrowUpRight, CreditCard, ArrowRight, Calendar, Plus, ArrowLeftRight, PiggyBank } from 'lucide-react'
+import {
+    Wallet,
+    ArrowDownLeft,
+    ArrowUpRight,
+    ArrowRight,
+    Calendar,
+    Plus,
+    ArrowLeftRight,
+    PiggyBank,
+    CreditCard,
+    HandCoins,
+    Banknote,
+    TrendingDown,
+    TrendingUp
+} from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
-import { useTotalBalance, useTransactions, useBalanceHistory, useAccounts, useCategorySummary, useBudgets } from '@/hooks'
+import { useTotalBalance, useTransactions, useBalanceHistory, useAccounts, useCategorySummary, useBudgets, useDebtsWithSummary } from '@/hooks'
 import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { useTheme } from '@/hooks/use-theme'
 import { Link, useNavigate } from 'react-router-dom'
-import { Transaction } from '@/types'
+import { Transaction, AccountType } from '@/types'
+import { ACCOUNT_TYPE_CONFIG } from '@/constants'
 
 const CHART_COLORS = [
     '#3b82f6', // blue
@@ -143,7 +158,7 @@ export default function DashboardPage() {
     const { theme } = useTheme()
     const navigate = useNavigate()
     const { data: balance } = useTotalBalance()
-    const { data: accounts } = useAccounts({ active: true })
+    const { data: accounts } = useAccounts({ active: true, exclude_debts: true })
 
     // Period state for chart
     const [chartPeriod, setChartPeriod] = useState<PeriodPreset>('this_month')
@@ -169,10 +184,14 @@ export default function DashboardPage() {
         ...currentMonthFilters,
     })
     const { data: budgets } = useBudgets()
+    const { data: debtsData } = useDebtsWithSummary()
 
     const activeBudgets = useMemo(() => {
         return budgets?.filter(b => b.isActive).slice(0, 4) ?? []
     }, [budgets])
+
+    const activeDebts = debtsData?.data?.filter(d => !d.isPaidOff).slice(0, 4) ?? []
+    const debtSummary = debtsData?.summary
 
     const summary = monthData?.summary
 
@@ -449,13 +468,19 @@ export default function DashboardPage() {
                                         className="flex items-center justify-between gap-2"
                                     >
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                                            <div className="flex size-9 items-center justify-center rounded-lg bg-muted shrink-0">
-                                                <CreditCard className="size-4" />
-                                            </div>
+                                            {(() => {
+                                                const config = ACCOUNT_TYPE_CONFIG[account.type as AccountType]
+                                                const Icon = config?.icon || Wallet
+                                                return (
+                                                    <div className={`flex size-9 items-center justify-center rounded-lg shrink-0 ${config?.color || 'bg-muted'}`}>
+                                                        <Icon className="size-4" />
+                                                    </div>
+                                                )
+                                            })()}
                                             <div className="min-w-0">
                                                 <p className="text-sm font-medium truncate">{account.name}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {account.type}
+                                                <p className="text-xs text-muted-foreground capitalize">
+                                                    {ACCOUNT_TYPE_CONFIG[account.type as AccountType]?.label || account.type}
                                                 </p>
                                             </div>
                                         </div>
@@ -659,6 +684,115 @@ export default function DashboardPage() {
                                 <Link to="/budgets/create">
                                     <Plus className="size-4 mr-1" />
                                     Create Budget
+                                </Link>
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                        <HandCoins className="size-5" />
+                        Debts
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link to="/debts">
+                            View all
+                            <ArrowRight className="ml-1 size-4" />
+                        </Link>
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {debtSummary && (debtSummary.total_i_owe > 0 || debtSummary.total_owed_to_me > 0) ? (
+                        <div className="space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-3">
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/20">
+                                    <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+                                        <TrendingDown className="size-4 text-red-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">I Owe</p>
+                                        <p className="font-mono font-semibold text-red-600">
+                                            {debtSummary.total_i_owe.toFixed(2)} {debtSummary.currency}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20">
+                                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                                        <TrendingUp className="size-4 text-green-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Owed to Me</p>
+                                        <p className="font-mono font-semibold text-green-600">
+                                            {debtSummary.total_owed_to_me.toFixed(2)} {debtSummary.currency}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className={`flex items-center gap-3 p-3 rounded-lg ${debtSummary.net_debt >= 0 ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'}`}>
+                                    <div className={`p-2 rounded-lg ${debtSummary.net_debt >= 0 ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                                        {debtSummary.net_debt >= 0 ? (
+                                            <HandCoins className="size-4 text-green-600" />
+                                        ) : (
+                                            <Banknote className="size-4 text-red-600" />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Net Position</p>
+                                        <p className={`font-mono font-semibold ${debtSummary.net_debt >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {Math.abs(debtSummary.net_debt).toFixed(2)} {debtSummary.currency}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {activeDebts.length > 0 && (
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    {activeDebts.map((debt) => (
+                                        <Link
+                                            key={debt.id}
+                                            to={`/debts/${debt.id}/edit`}
+                                            className="block p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-2 mb-2">
+                                                {debt.debtType === 'i_owe' ? (
+                                                    <Banknote className="size-4 text-red-600" />
+                                                ) : (
+                                                    <HandCoins className="size-4 text-green-600" />
+                                                )}
+                                                <p className="font-medium text-sm truncate">{debt.name}</p>
+                                            </div>
+                                            <Progress
+                                                value={debt.paymentProgress}
+                                                className="h-1.5 mb-2"
+                                            />
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-muted-foreground">
+                                                    {debt.paymentProgress.toFixed(0)}% paid
+                                                </span>
+                                                <span className={debt.debtType === 'i_owe' ? 'text-red-600' : 'text-green-600'}>
+                                                    {debt.remainingDebt.toFixed(2)} {debt.currency?.symbol}
+                                                </span>
+                                            </div>
+                                            {debt.counterparty && (
+                                                <p className="text-xs text-muted-foreground mt-1 truncate">
+                                                    {debt.debtType === 'i_owe' ? 'To: ' : 'From: '}{debt.counterparty}
+                                                </p>
+                                            )}
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <HandCoins className="size-12 mx-auto text-muted-foreground/50 mb-3" />
+                            <p className="text-muted-foreground mb-3">No active debts</p>
+                            <Button asChild size="sm">
+                                <Link to="/debts/create">
+                                    <Plus className="size-4 mr-1" />
+                                    Add Debt
                                 </Link>
                             </Button>
                         </div>

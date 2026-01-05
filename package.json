@@ -1,7 +1,7 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "name": "savvy",
-    "version": "1.0.0",
+    "version": "1.1.0-beta",
     "private": true,
     "type": "module",
     "scripts": {
@@ -57,6 +57,7 @@
         "data-generator-retail": "^5.13.4",
         "echarts": "^6.0.0",
         "echarts-for-react": "^3.0.5",
+        "emoji-picker-react": "^4.16.1",
         "lucide-react": "^0.562.0",
         "ra-core": "^5.13.4",
         "ra-data-fakerest": "^5.13.4",

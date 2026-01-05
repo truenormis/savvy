@@ -28,6 +28,9 @@ const BudgetEditPage = lazy(() => import('@/pages/budgets/[id]/edit'))
 const TagsPage = lazy(() => import('@/pages/tags'))
 const TagCreatePage = lazy(() => import('@/pages/tags/create'))
 const TagEditPage = lazy(() => import('@/pages/tags/[id]/edit'))
+const DebtsPage = lazy(() => import('@/pages/debts'))
+const DebtCreatePage = lazy(() => import('@/pages/debts/create'))
+const DebtEditPage = lazy(() => import('@/pages/debts/[id]/edit'))
 const ReportsPage = lazy(() => import('@/pages/reports'))
 const NotFoundPage = lazy(() => import('@/pages/not-found'))
 
@@ -81,6 +84,9 @@ export const router = createBrowserRouter([
                     { path: 'tags', element: withSuspense(TagsPage) },
                     { path: 'tags/create', element: withSuspense(TagCreatePage) },
                     { path: 'tags/:id/edit', element: withSuspense(TagEditPage) },
+                    { path: 'debts', element: withSuspense(DebtsPage) },
+                    { path: 'debts/create', element: withSuspense(DebtCreatePage) },
+                    { path: 'debts/:id/edit', element: withSuspense(DebtEditPage) },
                     { path: 'reports', element: withSuspense(ReportsPage) },
                 ],
             },

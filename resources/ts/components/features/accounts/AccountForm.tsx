@@ -21,13 +21,9 @@ import {
 } from '@/components/ui/select'
 import { accountSchema, AccountFormData } from '@/schemas'
 import { useCurrencies } from '@/hooks'
-import { Landmark, Wallet, Bitcoin } from 'lucide-react'
-
-const ACCOUNT_TYPES = [
-    { value: 'bank', label: 'Bank Account', icon: Landmark },
-    { value: 'cash', label: 'Cash', icon: Wallet },
-    { value: 'crypto', label: 'Crypto', icon: Bitcoin },
-] as const
+import { REGULAR_ACCOUNT_TYPE_CONFIG, REGULAR_ACCOUNT_TYPES } from '@/constants'
+import type { RegularAccountType } from '@/types'
+import { cn } from '@/lib/utils'
 
 interface AccountFormProps {
     defaultValues?: Partial<AccountFormData>
@@ -86,14 +82,18 @@ export function AccountForm({
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {ACCOUNT_TYPES.map(({ value, label, icon: Icon }) => (
-                                        <SelectItem key={value} value={value}>
-                                            <div className="flex items-center gap-2">
-                                                <Icon className="size-4" />
-                                                {label}
-                                            </div>
-                                        </SelectItem>
-                                    ))}
+                                    {REGULAR_ACCOUNT_TYPES.map((type) => {
+                                        const config = REGULAR_ACCOUNT_TYPE_CONFIG[type]
+                                        const Icon = config.icon
+                                        return (
+                                            <SelectItem key={type} value={type}>
+                                                <div className="flex items-center gap-2">
+                                                    <Icon className={cn('size-4', config.textColor)} />
+                                                    {config.label}
+                                                </div>
+                                            </SelectItem>
+                                        )
+                                    })}
                                 </SelectContent>
                             </Select>
                             <FormMessage />

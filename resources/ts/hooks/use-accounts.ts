@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 
 const QUERY_KEY = ['accounts']
 
-export function useAccounts(params?: { active?: boolean }) {
+export function useAccounts(params?: { active?: boolean; exclude_debts?: boolean }) {
     return useQuery({
         queryKey: params ? [...QUERY_KEY, params] : QUERY_KEY,
         queryFn: () => accountsApi.getAll(params),

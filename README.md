@@ -13,13 +13,18 @@
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/DOCKER-savvy-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+<a href="https://hub.docker.com/r/truenormis/savvy"><img src="https://img.shields.io/badge/DOCKER-truenormis/savvy-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
+<img src="https://img.shields.io/badge/VERSION-1.1.0--beta-orange?style=for-the-badge" alt="Version">
 <img src="https://img.shields.io/badge/LICENSE-MIT-green?style=for-the-badge" alt="License">
+</p>
+
+<p align="center">
+  <img src="docs/images/screenshot.png" alt="Savvy Screenshot" width="800">
 </p>
 
 ## ⚡ Quick Start
 ```bash
-docker run -d -p 3000:80 -v savvy-data:/data savvy/savvy
+docker run -d -p 3000:80 -v savvy-data:/data truenormis/savvy
 ```
 
 Open `localhost:3000`.

@@ -1,5 +1,4 @@
-import { Button } from '@/components/ui/button'
-import { ICON_OPTIONS } from '@/constants/categories'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
 
 interface IconPickerProps {
     value: string
@@ -11,19 +10,7 @@ export function IconPicker({ value, onChange, error }: IconPickerProps) {
     return (
         <div className="space-y-2">
             <label className="text-sm font-medium">Icon</label>
-            <div className="flex flex-wrap gap-2">
-                {ICON_OPTIONS.map((icon) => (
-                    <Button
-                        key={icon}
-                        type="button"
-                        variant={value === icon ? 'default' : 'outline'}
-                        size="icon"
-                        onClick={() => onChange(icon)}
-                    >
-                        {icon}
-                    </Button>
-                ))}
-            </div>
+            <EmojiPicker value={value} onChange={onChange} />
             {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
     )

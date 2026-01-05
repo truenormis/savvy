@@ -1,7 +1,11 @@
 import { BaseEntity } from './api'
 import { Currency } from './currencies'
 
-export type AccountType = 'bank' | 'crypto' | 'cash'
+// All account types including debt
+export type AccountType = 'bank' | 'crypto' | 'cash' | 'debt'
+
+// Regular account types (excluding debt) - for account creation
+export type RegularAccountType = 'bank' | 'crypto' | 'cash'
 
 export interface Account extends BaseEntity {
     name: string
@@ -15,7 +19,7 @@ export interface Account extends BaseEntity {
 
 export interface AccountFormData {
     name: string
-    type: AccountType
+    type: RegularAccountType
     currency_id: number
     initial_balance?: number
     is_active?: boolean

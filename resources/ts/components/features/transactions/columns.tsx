@@ -19,7 +19,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { MoreHorizontal, Pencil, Trash2, Copy, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ChevronRight } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, Copy, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ChevronRight, Banknote, HandCoins } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +27,8 @@ const TYPE_CONFIG = {
     income: { icon: ArrowDownLeft, color: 'text-green-600', bg: 'bg-green-100', label: 'Income' },
     expense: { icon: ArrowUpRight, color: 'text-red-600', bg: 'bg-red-100', label: 'Expense' },
     transfer: { icon: ArrowLeftRight, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Transfer' },
+    debt_payment: { icon: Banknote, color: 'text-orange-600', bg: 'bg-orange-100', label: 'Debt Payment' },
+    debt_collection: { icon: HandCoins, color: 'text-purple-600', bg: 'bg-purple-100', label: 'Debt Collection' },
 }
 
 export function createTransactionColumns(
@@ -87,24 +89,39 @@ export function createTransactionColumns(
             header: 'Description',
             cell: ({ row }) => {
                 const { description, category, account, toAccount, type, itemsCount, tags } = row.original
+
+                const getDefaultDescription = () => {
+                    if (type === 'transfer') return `${account.name} → ${toAccount?.name}`
+                    if (type === 'debt_payment') return `Payment: ${toAccount?.name}`
+                    if (type === 'debt_collection') return `Collection: ${toAccount?.name}`
+                    return category?.name
+                }
+
+                const getSubDescription = () => {
+                    if (type === 'transfer') {
+                        return <span>{account.name} → {toAccount?.name}</span>
+                    }
+                    if (type === 'debt_payment') {
+                        return <span>{account.name} → {toAccount?.name}</span>
+                    }
+                    if (type === 'debt_collection') {
+                        return <span>{toAccount?.name} → {account.name}</span>
+                    }
+                    return (
+                        <span>
+                            {account.name}
+                            {category && ` · ${category.icon} ${category.name}`}
+                        </span>
+                    )
+                }
+
                 return (
                     <div className="space-y-1">
                         <div className="font-medium">
-                            {description || (
-                                type === 'transfer'
-                                    ? `${account.name} → ${toAccount?.name}`
-                                    : category?.name
-                            )}
+                            {description || getDefaultDescription()}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                            {type === 'transfer' ? (
-                                <span>{account.name} → {toAccount?.name}</span>
-                            ) : (
-                                <span>
-                                    {account.name}
-                                    {category && ` · ${category.icon} ${category.name}`}
-                                </span>
-                            )}
+                            {getSubDescription()}
                             {itemsCount != null && itemsCount > 0 && (
                                 <span className="ml-2 text-primary">({itemsCount} items)</span>
                             )}
@@ -127,16 +144,17 @@ export function createTransactionColumns(
             header: () => <div className="text-right">Amount</div>,
             cell: ({ row }) => {
                 const { type, amount, toAmount, account, toAccount } = row.original
-                const isIncome = type === 'income'
+                const isIncoming = type === 'income' || type === 'debt_collection'
                 const isTransfer = type === 'transfer'
+                const isDebtPayment = type === 'debt_payment'
 
                 return (
                     <div className="text-right space-y-1">
                         <div className={cn(
                             'font-mono font-semibold',
-                            isIncome ? 'text-green-600' : isTransfer ? 'text-blue-600' : 'text-red-600'
+                            isIncoming ? 'text-green-600' : isTransfer ? 'text-blue-600' : isDebtPayment ? 'text-orange-600' : 'text-red-600'
                         )}>
-                            {isIncome ? '+' : '-'}{amount.toFixed(2)} {account.currency?.symbol}
+                            {isIncoming ? '+' : '-'}{amount.toFixed(2)} {account.currency?.symbol}
                         </div>
                         {isTransfer && toAmount && toAccount && (
                             <div className="text-xs text-muted-foreground font-mono">

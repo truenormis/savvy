@@ -3,7 +3,7 @@ import { createAccountColumns } from '@/components/features/accounts'
 import { useAccounts, useDeleteAccount } from '@/hooks'
 
 export default function AccountsPage() {
-    const { data: accounts, isLoading } = useAccounts()
+    const { data: accounts, isLoading } = useAccounts({ exclude_debts: true })
     const deleteAccount = useDeleteAccount()
 
     const columns = createAccountColumns((id) => deleteAccount.mutate(id))

@@ -8,12 +8,16 @@ use Illuminate\Database\Eloquent\Collection;
 
 class AccountService
 {
-    public function getAll(bool $onlyActive = false): Collection
+    public function getAll(bool $onlyActive = false, bool $excludeDebts = false): Collection
     {
         $query = Account::with('currency');
 
         if ($onlyActive) {
             $query->where('is_active', true);
+        }
+
+        if ($excludeDebts) {
+            $query->regularAccounts();
         }
 
         return $query->get()->each(fn (Account $account) => $this->loadBalance($account));
@@ -58,7 +62,10 @@ class AccountService
             return ['dates' => [], 'series' => [], 'currency' => '$'];
         }
 
-        $accounts = Account::with('currency')->where('is_active', true)->get();
+        $accounts = Account::with('currency')
+            ->where('is_active', true)
+            ->regularAccounts()
+            ->get();
         $accountIds = $accounts->pluck('id')->toArray();
 
         // Calculate initial balance before start date for each account
@@ -68,7 +75,11 @@ class AccountService
         }
 
         // Get all transactions in the date range for active accounts
-        $transactions = \App\Models\Transaction::whereBetween('date', [$startDate, $endDate])
+        // Use Carbon dates to handle datetime fields properly
+        $start = \Carbon\Carbon::parse($startDate)->startOfDay();
+        $end = \Carbon\Carbon::parse($endDate)->endOfDay();
+
+        $transactions = \App\Models\Transaction::whereBetween('date', [$start, $end])
             ->where(function ($query) use ($accountIds) {
                 $query->whereIn('account_id', $accountIds)
                     ->orWhereIn('to_account_id', $accountIds);
@@ -108,11 +119,13 @@ class AccountService
 
                     switch ($transaction->type->value) {
                         case 'income':
+                        case 'debt_collection': // Money comes to regular account
                             if (isset($runningBalances[$accountId])) {
                                 $runningBalances[$accountId] += (float) $transaction->amount;
                             }
                             break;
                         case 'expense':
+                        case 'debt_payment': // Money goes from regular account
                             if (isset($runningBalances[$accountId])) {
                                 $runningBalances[$accountId] -= (float) $transaction->amount;
                             }
@@ -165,13 +178,15 @@ class AccountService
 
     private function getAccountBalanceBeforeDate(Account $account, string $date): float
     {
+        // Income + debt collections (money coming in)
         $income = $account->transactions()
-            ->where('type', 'income')
+            ->whereIn('type', ['income', 'debt_collection'])
             ->where('date', '<', $date)
             ->sum('amount');
 
+        // Expenses + debt payments (money going out)
         $expense = $account->transactions()
-            ->where('type', 'expense')
+            ->whereIn('type', ['expense', 'debt_payment'])
             ->where('date', '<', $date)
             ->sum('amount');
 
@@ -196,30 +211,56 @@ class AccountService
         if (!$baseCurrency) {
             return [
                 'total_balance' => 0,
+                'debts_impact' => 0,
+                'net_worth' => 0,
                 'base_currency_id' => null,
                 'accounts_count' => 0,
+                'debts_count' => 0,
             ];
         }
 
-        $accounts = $this->getAll(onlyActive: true);
-        $totalInBaseCurrency = 0;
+        // Regular accounts (bank, crypto, cash)
+        $regularAccounts = $this->getAll(onlyActive: true, excludeDebts: true);
+        $totalRegularBalance = 0;
 
-        foreach ($accounts as $account) {
+        foreach ($regularAccounts as $account) {
             $balance = $account->current_balance;
 
             if ($account->currency_id === $baseCurrency->id) {
-                $totalInBaseCurrency += $balance;
+                $totalRegularBalance += $balance;
             } else {
-                $converted = $account->currency->convertTo($balance, $baseCurrency);
-                $totalInBaseCurrency += $converted;
+                $totalRegularBalance += $account->currency->convertTo($balance, $baseCurrency);
             }
         }
 
+        // Debts
+        $debts = Account::with('currency')
+            ->where('type', 'debt')
+            ->where('is_active', true)
+            ->where('is_paid_off', false)
+            ->get();
+
+        $debtsImpact = 0;
+        foreach ($debts as $debt) {
+            $remainingDebt = $debt->current_balance;
+            $remainingInBase = $debt->currency_id === $baseCurrency->id
+                ? $remainingDebt
+                : $debt->currency->convertTo($remainingDebt, $baseCurrency);
+
+            // i_owe decreases capital, owed_to_me increases
+            $debtsImpact += $debt->debt_type->capitalImpact() * $remainingInBase;
+        }
+
+        $netWorth = $totalRegularBalance + $debtsImpact;
+
         return [
-            'total_balance' => round($totalInBaseCurrency, 2),
+            'total_balance' => round($totalRegularBalance, 2),
+            'debts_impact' => round($debtsImpact, 2),
+            'net_worth' => round($netWorth, 2),
             'currency' => $baseCurrency->symbol,
             'currency_code' => $baseCurrency->code,
-            'accounts_count' => $accounts->count(),
+            'accounts_count' => $regularAccounts->count(),
+            'debts_count' => $debts->count(),
         ];
     }
 

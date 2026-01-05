@@ -112,6 +112,11 @@ class TransactionService
         $expense = 0.0;
 
         foreach ($transactions as $transaction) {
+            // Skip debt operations - they don't affect income/expense
+            if ($transaction->type->isDebtOperation()) {
+                continue;
+            }
+
             $currency = $transaction->account->currency;
             $amountInBase = $currency->convertToBase((float) $transaction->amount);
 
@@ -120,7 +125,7 @@ class TransactionService
             } elseif ($transaction->type === TransactionType::Expense) {
                 $expense += $amountInBase;
             }
-            // Transfer не влияет на общий баланс - деньги просто перемещаются
+            // Transfer doesn't affect total balance - money just moves between accounts
         }
 
         return [

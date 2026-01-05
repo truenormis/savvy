@@ -28,17 +28,19 @@ export interface BalanceHistoryResponse {
 }
 
 export const accountsApi = {
-    getAll: (params?: { active?: boolean }) => {
+    getAll: (params?: { active?: boolean; exclude_debts?: boolean }) => {
         const searchParams = new URLSearchParams()
         if (params?.active) searchParams.set('active', 'true')
+        if (params?.exclude_debts) searchParams.set('exclude_debts', 'true')
         const query = searchParams.toString()
         return api.get<Account[]>(`${ENDPOINT}${query ? `?${query}` : ''}`)
     },
 
-    getAllWithSummary: async (params?: { active?: boolean }): Promise<AccountsResponse> => {
+    getAllWithSummary: async (params?: { active?: boolean; exclude_debts?: boolean }): Promise<AccountsResponse> => {
         const searchParams = new URLSearchParams()
         searchParams.set('with_summary', 'true')
         if (params?.active) searchParams.set('active', 'true')
+        if (params?.exclude_debts) searchParams.set('exclude_debts', 'true')
         const query = searchParams.toString()
         const response = await apiClient.get(`${ENDPOINT}?${query}`)
         return response.data

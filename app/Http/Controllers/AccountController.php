@@ -21,7 +21,8 @@ class AccountController extends Controller
     public function index(Request $request): AccountCollection
     {
         $onlyActive = $request->boolean('active');
-        $accounts = $this->accountService->getAll($onlyActive);
+        $excludeDebts = $request->boolean('exclude_debts');
+        $accounts = $this->accountService->getAll($onlyActive, $excludeDebts);
 
         $collection = new AccountCollection($accounts);
 
