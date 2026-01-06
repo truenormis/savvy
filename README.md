@@ -1,6 +1,6 @@
 <p align="center">
-  <img src="docs/images/logo-light.svg#gh-light-mode-only" alt="Savvy" width="120">
-  <img src="docs/images/logo-dark.svg#gh-dark-mode-only" alt="Savvy" width="120">
+  <img src="docs/images/logo-dark.svg#gh-light-mode-only" alt="Savvy" width="120">
+  <img src="docs/images/logo-light.svg#gh-dark-mode-only" alt="Savvy" width="120">
 </p>
 
 <h1 align="center">Savvy</h1>
