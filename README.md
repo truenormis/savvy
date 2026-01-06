@@ -14,7 +14,7 @@
 
 <p align="center">
 <a href="https://hub.docker.com/r/truenormis/savvy"><img src="https://img.shields.io/badge/DOCKER-truenormis/savvy-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
-<img src="https://img.shields.io/badge/VERSION-1.1.0--beta-orange?style=for-the-badge" alt="Version">
+<img src="https://img.shields.io/github/v/tag/truenormis/savvy?style=for-the-badge&color=orange" alt="Version">
 <img src="https://img.shields.io/badge/LICENSE-MIT-green?style=for-the-badge" alt="License">
 </p>
 
