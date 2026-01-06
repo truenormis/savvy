@@ -1,9 +1,6 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/images/logo-light.svg">
-    <img src="docs/images/logo-light.svg" alt="Savvy" width="120">
-  </picture>
+  <img src="docs/images/logo-light.svg#gh-light-mode-only" alt="Savvy" width="120">
+  <img src="docs/images/logo-dark.svg#gh-dark-mode-only" alt="Savvy" width="120">
 </p>
 
 <h1 align="center">Savvy</h1>
