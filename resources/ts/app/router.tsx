@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/auth/login'))
 const SetupPage = lazy(() => import('@/pages/auth/setup'))
+const Setup2FAPage = lazy(() => import('@/pages/auth/setup-2fa'))
 
 // Protected pages
 const DashboardPage = lazy(() => import('@/pages/dashboard'))
@@ -67,6 +68,10 @@ export const router = createBrowserRouter([
     {
         path: '/setup',
         element: withSuspense(SetupPage),
+    },
+    {
+        path: '/setup-2fa',
+        element: withSuspense(Setup2FAPage),
     },
 
     // Protected routes

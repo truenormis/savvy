@@ -64,8 +64,8 @@ export default function SetupPage() {
                 email: data.email,
                 password: data.password,
             })
-            toast.success('Setup complete! Welcome to Savvy.')
-            navigate('/')
+            toast.success('Account created!')
+            navigate('/setup-2fa')
         } catch (error: unknown) {
             const message = error && typeof error === 'object' && 'message' in error
                 ? (error as { message: string }).message

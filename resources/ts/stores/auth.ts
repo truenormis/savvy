@@ -58,6 +58,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     register: async (data) => {
         const { user, token } = await authApi.register(data)
         localStorage.setItem(TOKEN_KEY, token)
+        sessionStorage.setItem('just_registered', 'true')
         set({ user, token, isAuthenticated: true })
     },
 
