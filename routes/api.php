@@ -13,6 +13,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionImportController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -76,6 +77,13 @@ Route::middleware('jwt')->group(function () {
         Route::apiResource('transactions', TransactionController::class);
         Route::post('transactions/{transaction}/duplicate', [TransactionController::class, 'duplicate']);
         Route::get('transactions-summary', [TransactionController::class, 'summary']);
+
+        // Transaction Import
+        Route::prefix('transactions/import')->group(function () {
+            Route::post('parse', [TransactionImportController::class, 'parse']);
+            Route::post('preview', [TransactionImportController::class, 'preview']);
+            Route::post('/', [TransactionImportController::class, 'import']);
+        });
 
         Route::apiResource('budgets', BudgetController::class);
 

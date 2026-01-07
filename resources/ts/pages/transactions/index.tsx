@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQueryStates, parseAsInteger, parseAsString, parseAsArrayOf, parseAsStringLiteral } from 'nuqs'
 import { Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Filter, ArrowUpDown, X } from 'lucide-react'
 import { Row } from '@tanstack/react-table'
-import { Page, PageHeader, DataTable } from '@/components/shared'
+import { Page, PageHeader, DataTable, ServerPagination } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -318,33 +318,15 @@ export default function TransactionsPage() {
                 }
                 renderSubComponent={TransactionItems}
                 getRowCanExpand={(row) => (row.original.itemsCount ?? row.original.items?.length ?? 0) > 1}
+                manualPagination
             />
 
-            {/* Pagination */}
-            {meta && meta.last_page > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                    <div className="text-sm text-muted-foreground">
-                        Showing {meta.from} to {meta.to} of {meta.total} transactions
-                    </div>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setParams({ page: params.page - 1 })}
-                            disabled={meta.current_page === 1}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setParams({ page: params.page + 1 })}
-                            disabled={meta.current_page === meta.last_page}
-                        >
-                            Next
-                        </Button>
-                    </div>
-                </div>
+            {meta && (
+                <ServerPagination
+                    meta={meta}
+                    onPageChange={(page) => setParams({ page })}
+                    infoLabel="transactions"
+                />
             )}
         </Page>
     )

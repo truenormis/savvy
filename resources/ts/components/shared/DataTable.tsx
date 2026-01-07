@@ -45,6 +45,7 @@ interface DataTableProps<T> {
     renderSubComponent?: (props: { row: Row<T> }) => React.ReactNode
     getRowCanExpand?: (row: Row<T>) => boolean
     getRowClassName?: (row: Row<T>) => string | undefined
+    manualPagination?: boolean
 }
 
 function DataTableSkeleton({ columns }: { columns: number }) {
@@ -184,14 +185,16 @@ export function DataTable<T>({
     renderSubComponent,
     getRowCanExpand,
     getRowClassName,
+    manualPagination = false,
 }: DataTableProps<T>) {
     const table = useReactTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
+        getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
         getExpandedRowModel: getExpandedRowModel(),
         getRowCanExpand,
+        manualPagination,
     })
 
     if (isLoading) {
@@ -251,7 +254,7 @@ export function DataTable<T>({
                     ))}
                 </TableBody>
             </Table>
-            <DataTablePagination table={table} />
+            {!manualPagination && <DataTablePagination table={table} />}
         </div>
     )
 }
