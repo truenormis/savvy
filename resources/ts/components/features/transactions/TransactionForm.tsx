@@ -19,6 +19,7 @@ import { Plus, Trash2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucid
 import { Badge } from '@/components/ui/badge'
 import { AccountSelect } from '@/components/shared/AccountSelect'
 import { CategorySelect } from '@/components/shared/CategorySelect'
+import { FormWrapper } from '@/components/shared/FormWrapper'
 
 const TRANSACTION_TYPES = [
     { value: 'income', label: 'Income', icon: ArrowDownLeft, color: 'text-green-600' },
@@ -228,6 +229,7 @@ export function TransactionForm({
     }, [selectedToAccount, toAmount, amount, transactionType])
 
     return (
+        <FormWrapper>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Transaction Type Tabs */}
@@ -634,5 +636,6 @@ export function TransactionForm({
                 </Button>
             </form>
         </Form>
+        </FormWrapper>
     )
 }

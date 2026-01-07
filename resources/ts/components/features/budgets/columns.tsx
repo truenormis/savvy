@@ -32,7 +32,8 @@ const periodLabels: Record<string, string> = {
 }
 
 export const createBudgetColumns = (
-    onDelete: (id: number) => void
+    onDelete: (id: number) => void,
+    isReadOnly?: boolean
 ): ColumnDef<Budget>[] => [
     {
         accessorKey: 'name',
@@ -124,6 +125,8 @@ export const createBudgetColumns = (
                             Edit
                         </Link>
                     </DropdownMenuItem>
+                    {!isReadOnly && (
+                    <>
                     <DropdownMenuSeparator />
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -154,6 +157,8 @@ export const createBudgetColumns = (
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                    </>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         ),

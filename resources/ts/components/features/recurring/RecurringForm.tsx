@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils'
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react'
 import { AccountSelect } from '@/components/shared/AccountSelect'
 import { CategorySelect } from '@/components/shared/CategorySelect'
+import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface RecurringFormProps {
     defaultValues?: Partial<RecurringFormData>
@@ -120,6 +121,7 @@ export function RecurringForm({
     }, [type, categories, form])
 
     return (
+        <FormWrapper>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-lg space-y-4">
                 {/* Type Selection */}
@@ -480,5 +482,6 @@ export function RecurringForm({
                 </Button>
             </form>
         </Form>
+        </FormWrapper>
     )
 }

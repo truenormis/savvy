@@ -12,6 +12,7 @@ import {
     FormMessage,
     FormDescription,
 } from '@/components/ui/form'
+import { FormWrapper } from '@/components/shared/FormWrapper'
 
 const tagSchema = z.object({
     name: z.string()
@@ -43,6 +44,7 @@ export function TagForm({
     })
 
     return (
+        <FormWrapper>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
@@ -73,5 +75,6 @@ export function TagForm({
                 </Button>
             </form>
         </Form>
+        </FormWrapper>
     )
 }

@@ -15,9 +15,10 @@ import type { AutomationRule } from '@/types/automation'
 interface ColumnOptions {
     onDelete: (id: number) => void
     onToggle: (id: number) => void
+    isReadOnly?: boolean
 }
 
-export function createAutomationColumns({ onDelete, onToggle }: ColumnOptions): ColumnDef<AutomationRule>[] {
+export function createAutomationColumns({ onDelete, onToggle, isReadOnly }: ColumnOptions): ColumnDef<AutomationRule>[] {
     return [
         {
             accessorKey: 'priority',
@@ -79,6 +80,7 @@ export function createAutomationColumns({ onDelete, onToggle }: ColumnOptions): 
             cell: ({ row }) => (
                 <Switch
                     checked={row.original.is_active}
+                    disabled={isReadOnly}
                     onCheckedChange={() => onToggle(row.original.id)}
                 />
             ),
@@ -105,6 +107,7 @@ export function createAutomationColumns({ onDelete, onToggle }: ColumnOptions): 
                                 View Logs
                             </Link>
                         </DropdownMenuItem>
+                        {!isReadOnly && (
                         <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => onDelete(row.original.id)}
@@ -112,6 +115,7 @@ export function createAutomationColumns({ onDelete, onToggle }: ColumnOptions): 
                             <Trash2 className="size-4 mr-2" />
                             Delete
                         </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),

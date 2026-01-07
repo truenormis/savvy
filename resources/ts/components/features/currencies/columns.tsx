@@ -29,6 +29,7 @@ interface ColumnOptions {
     onSetBase: (id: number) => void
     isSettingBase?: boolean
     currencyCount: number
+    isReadOnly?: boolean
 }
 
 export const createCurrencyColumns = ({
@@ -36,6 +37,7 @@ export const createCurrencyColumns = ({
     onSetBase,
     isSettingBase,
     currencyCount,
+    isReadOnly,
 }: ColumnOptions): ColumnDef<Currency>[] => [
     {
         accessorKey: 'code',
@@ -90,7 +92,7 @@ export const createCurrencyColumns = ({
         cell: ({ row }) => (
             <Switch
                 checked={row.original.isBase}
-                disabled={row.original.isBase || isSettingBase}
+                disabled={row.original.isBase || isSettingBase || isReadOnly}
                 onCheckedChange={() => onSetBase(row.original.id)}
             />
         ),
@@ -116,6 +118,8 @@ export const createCurrencyColumns = ({
                                 Edit
                             </Link>
                         </DropdownMenuItem>
+                        {!isReadOnly && (
+                        <>
                         <DropdownMenuSeparator />
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -147,6 +151,8 @@ export const createCurrencyColumns = ({
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
+                        </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             )

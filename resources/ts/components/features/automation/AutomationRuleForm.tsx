@@ -31,6 +31,7 @@ import { useAutomationTriggers } from '@/hooks/use-automation'
 import { ConditionBuilder } from './ConditionBuilder'
 import { ActionBuilder } from './ActionBuilder'
 import type { AutomationRuleFormData, TriggerType } from '@/types/automation'
+import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface AutomationRuleFormProps {
     defaultValues?: Partial<AutomationRuleFormData>
@@ -67,6 +68,7 @@ export function AutomationRuleForm({
     }
 
     return (
+        <FormWrapper>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
@@ -232,5 +234,6 @@ export function AutomationRuleForm({
                 </Button>
             </form>
         </Form>
+        </FormWrapper>
     )
 }

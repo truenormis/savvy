@@ -22,6 +22,7 @@ import {
 import { debtSchema, DebtFormData } from '@/schemas'
 import { useCurrencies } from '@/hooks'
 import { Banknote, HandCoins } from 'lucide-react'
+import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface DebtFormProps {
     defaultValues?: Partial<DebtFormData>
@@ -70,6 +71,7 @@ export function DebtForm({
     })
 
     return (
+        <FormWrapper>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-md space-y-4">
                 <FormField
@@ -237,5 +239,6 @@ export function DebtForm({
                 </Button>
             </form>
         </Form>
+        </FormWrapper>
     )
 }

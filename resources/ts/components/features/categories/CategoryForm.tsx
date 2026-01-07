@@ -15,6 +15,7 @@ import { TypeSelector } from './TypeSelector'
 import { IconPicker } from './IconPicker'
 import { ColorPicker } from './ColorPicker'
 import { CategoryPreview } from './CategoryPreview'
+import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface CategoryFormProps {
     defaultValues?: Partial<CategoryFormData>
@@ -43,6 +44,7 @@ export function CategoryForm({
     const watchedValues = form.watch()
 
     return (
+        <FormWrapper>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-md space-y-4">
                 <FormField
@@ -112,5 +114,6 @@ export function CategoryForm({
                 </Button>
             </form>
         </Form>
+        </FormWrapper>
     )
 }

@@ -33,7 +33,8 @@ const TYPE_CONFIG = {
 
 export function createTransactionColumns(
     onDelete: (id: number) => void,
-    onDuplicate: (id: number) => void
+    onDuplicate: (id: number) => void,
+    isReadOnly?: boolean
 ): ColumnDef<Transaction>[] {
     return [
         {
@@ -183,6 +184,8 @@ export function createTransactionColumns(
                                     Edit
                                 </Link>
                             </DropdownMenuItem>
+                            {!isReadOnly && (
+                            <>
                             <DropdownMenuItem onClick={() => onDuplicate(transaction.id)}>
                                 <Copy className="mr-2 size-4" />
                                 Duplicate
@@ -216,6 +219,8 @@ export function createTransactionColumns(
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
+                            </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )

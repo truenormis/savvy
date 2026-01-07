@@ -49,6 +49,7 @@ interface ColumnActions {
     onPayment: (debt: Debt) => void
     onCollect: (debt: Debt) => void
     onReopen: (id: number) => void
+    isReadOnly?: boolean
 }
 
 export const createDebtColumns = (
@@ -168,7 +169,7 @@ export const createDebtColumns = (
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        {!debt.isPaidOff && (
+                        {!actions.isReadOnly && !debt.isPaidOff && (
                             <>
                                 {debt.debtType === 'i_owe' ? (
                                     <DropdownMenuItem onClick={() => actions.onPayment(debt)}>
@@ -184,7 +185,7 @@ export const createDebtColumns = (
                                 <DropdownMenuSeparator />
                             </>
                         )}
-                        {debt.isPaidOff && (
+                        {!actions.isReadOnly && debt.isPaidOff && (
                             <>
                                 <DropdownMenuItem onClick={() => actions.onReopen(debt.id)}>
                                     <RotateCcw className="mr-2 size-4" />
@@ -199,6 +200,8 @@ export const createDebtColumns = (
                                 Edit
                             </Link>
                         </DropdownMenuItem>
+                        {!actions.isReadOnly && (
+                        <>
                         <DropdownMenuSeparator />
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -229,8 +232,10 @@ export const createDebtColumns = (
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                        </>
+                        )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
             )
         },
     },

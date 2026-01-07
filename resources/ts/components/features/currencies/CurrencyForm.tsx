@@ -12,6 +12,7 @@ import {
     FormDescription,
 } from '@/components/ui/form'
 import { currencySchema, CurrencyFormData } from '@/schemas'
+import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface CurrencyFormProps {
     defaultValues?: Partial<CurrencyFormData>
@@ -45,6 +46,7 @@ export function CurrencyForm({
     })
 
     return (
+        <FormWrapper>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-md space-y-4">
                 <FormField
@@ -150,5 +152,6 @@ export function CurrencyForm({
                 </Button>
             </form>
         </Form>
+        </FormWrapper>
     )
 }

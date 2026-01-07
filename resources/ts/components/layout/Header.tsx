@@ -15,7 +15,6 @@ import { useTotalBalance } from '@/hooks'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
 import { getUserAvatarUrl, getUserInitials } from '@/lib/avatar'
-
 export function Header() {
     const { theme, toggleTheme } = useTheme()
     const { data: balance } = useTotalBalance()
@@ -105,7 +104,7 @@ export function Header() {
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate">{user.name}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{user.role}</p>
                                 </div>
                             </div>
                             )}

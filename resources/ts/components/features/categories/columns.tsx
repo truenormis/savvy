@@ -25,7 +25,8 @@ import { Category } from '@/types'
 
 export const createCategoryColumns = (
     onDelete: (id: number) => void,
-    typeCounts: { income: number; expense: number }
+    typeCounts: { income: number; expense: number },
+    isReadOnly?: boolean
 ): ColumnDef<Category>[] => [
     {
         accessorKey: 'name',
@@ -83,6 +84,8 @@ export const createCategoryColumns = (
                                 Edit
                             </Link>
                         </DropdownMenuItem>
+                        {!isReadOnly && (
+                        <>
                         <DropdownMenuSeparator />
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -114,6 +117,8 @@ export const createCategoryColumns = (
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
+                        </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             )

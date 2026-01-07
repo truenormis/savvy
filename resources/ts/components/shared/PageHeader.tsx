@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { Plus, ArrowLeft } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
-
 interface Props {
     title: string
     description?: string

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use App\Services\JwtService;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +48,7 @@ class AuthController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'role' => UserRole::Admin,
         ]);
 
         return response()->json([
@@ -96,6 +98,7 @@ class AuthController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'role' => $user->role,
         ];
     }
 }

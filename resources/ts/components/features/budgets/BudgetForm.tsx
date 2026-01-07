@@ -24,6 +24,7 @@ import { useCategories, useCurrencies, useTags } from '@/hooks'
 import { Category } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface BudgetFormProps {
     defaultValues?: Partial<BudgetFormData>
@@ -73,6 +74,7 @@ export function BudgetForm({
     const period = form.watch('period')
 
     return (
+        <FormWrapper>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-lg space-y-4">
                 <FormField
@@ -369,5 +371,6 @@ export function BudgetForm({
                 </Button>
             </form>
         </Form>
+        </FormWrapper>
     )
 }

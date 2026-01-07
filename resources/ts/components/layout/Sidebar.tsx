@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap } from 'lucide-react'
+import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap, LucideIcon } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 import {
     Sidebar,
@@ -20,8 +20,13 @@ import {
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { APP_VERSION } from '@/version'
+interface MenuItem {
+    to: string
+    icon: LucideIcon
+    label: string
+}
 
-const mainItems = [
+const mainItems: MenuItem[] = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/transactions', icon: Receipt, label: 'Transactions' },
     { to: '/recurring', icon: Repeat, label: 'Recurring' },
@@ -31,7 +36,7 @@ const mainItems = [
     { to: '/reports', icon: BarChart3, label: 'Reports' },
 ]
 
-const settingsItems = [
+const settingsItems: MenuItem[] = [
     { to: '/settings/system', icon: Cog, label: 'System' },
     { to: '/accounts', icon: CreditCard, label: 'Accounts' },
     { to: '/categories', icon: FolderTree, label: 'Categories' },

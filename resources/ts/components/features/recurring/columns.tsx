@@ -40,11 +40,13 @@ const frequencyLabels: Record<string, string> = {
 interface ColumnsOptions {
     onDelete: (id: number) => void
     onSkip: (id: number) => void
+    isReadOnly?: boolean
 }
 
 export const createRecurringColumns = ({
     onDelete,
     onSkip,
+    isReadOnly,
 }: ColumnsOptions): ColumnDef<RecurringTransaction>[] => [
     {
         accessorKey: 'description',
@@ -162,12 +164,14 @@ export const createRecurringColumns = ({
                             Edit
                         </Link>
                     </DropdownMenuItem>
-                    {row.original.isActive && (
+                    {!isReadOnly && row.original.isActive && (
                         <DropdownMenuItem onClick={() => onSkip(row.original.id)}>
                             <SkipForward className="mr-2 h-4 w-4" />
                             Skip Next
                         </DropdownMenuItem>
                     )}
+                    {!isReadOnly && (
+                    <>
                     <DropdownMenuSeparator />
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -198,6 +202,8 @@ export const createRecurringColumns = ({
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                    </>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         ),

@@ -22,6 +22,8 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "@casl/ability": "^6.7.5",
+        "@casl/react": "^5.0.0",
         "@hookform/resolvers": "^5.2.2",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-alert-dialog": "^1.1.15",

@@ -1,6 +1,7 @@
 import { Page, PageHeader, DataTable } from '@/components/shared'
 import { createTagColumns } from '@/components/features/tags'
 import { useTags, useDeleteTag } from '@/hooks'
+import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { Plus, Hash } from 'lucide-react'
@@ -8,8 +9,9 @@ import { Plus, Hash } from 'lucide-react'
 export default function TagsPage() {
     const { data: tags, isLoading } = useTags()
     const deleteTag = useDeleteTag()
+    const isReadOnly = useReadOnly()
 
-    const columns = createTagColumns((id) => deleteTag.mutate(id))
+    const columns = createTagColumns((id) => deleteTag.mutate(id), isReadOnly)
 
     return (
         <Page title="Tags">

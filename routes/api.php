@@ -15,74 +15,89 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-
+// Public routes
 Route::get('auth/status', [AuthController::class, 'status']);
 Route::post('auth/register', [AuthController::class, 'register']);
 Route::post('auth/login', [AuthController::class, 'login']);
+
+// Protected routes
 Route::middleware('jwt')->group(function () {
+    // Auth routes (available to all authenticated users)
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::post('auth/refresh', [AuthController::class, 'refresh']);
-    Route::apiResource('currencies', CurrencyController::class);
-    Route::post('currencies/{currency}/set-base', [CurrencyController::class, 'setBase']);
-    Route::post('currencies/convert', [CurrencyController::class, 'convert']);
 
-    Route::apiResource('accounts', AccountController::class);
-    Route::get('accounts-balance-history', [AccountController::class, 'balanceHistory']);
-    Route::get('accounts-balance-comparison', [AccountController::class, 'balanceComparison']);
+    // Users: read for all, write for admin only
+    Route::get('users', [UserController::class, 'index']);
+    Route::get('users/{user}', [UserController::class, 'show']);
+    Route::middleware('role:admin')->group(function () {
+        Route::post('users', [UserController::class, 'store']);
+        Route::put('users/{user}', [UserController::class, 'update']);
+        Route::patch('users/{user}', [UserController::class, 'update']);
+        Route::delete('users/{user}', [UserController::class, 'destroy']);
+    });
 
-    // Debts
-    Route::apiResource('debts', DebtController::class);
-    Route::post('debts/{debt}/payment', [DebtController::class, 'payment']);
-    Route::post('debts/{debt}/collect', [DebtController::class, 'collect']);
-    Route::post('debts/{debt}/reopen', [DebtController::class, 'reopen']);
-    Route::get('debts-summary', [DebtController::class, 'summary']);
+    // Resources with write access control
+    Route::middleware('write')->group(function () {
+        Route::apiResource('currencies', CurrencyController::class);
+        Route::post('currencies/{currency}/set-base', [CurrencyController::class, 'setBase']);
+        Route::post('currencies/convert', [CurrencyController::class, 'convert']);
 
-    Route::apiResource('categories', CategoryController::class);
-    Route::get('categories/{category}/statistics', [CategoryController::class, 'statistics']);
-    Route::get('categories-summary', [CategoryController::class, 'summary']);
+        Route::apiResource('accounts', AccountController::class);
+        Route::get('accounts-balance-history', [AccountController::class, 'balanceHistory']);
+        Route::get('accounts-balance-comparison', [AccountController::class, 'balanceComparison']);
 
-    Route::apiResource('transactions', TransactionController::class);
-    Route::post('transactions/{transaction}/duplicate', [TransactionController::class, 'duplicate']);
-    Route::get('transactions-summary', [TransactionController::class, 'summary']);
+        // Debts
+        Route::apiResource('debts', DebtController::class);
+        Route::post('debts/{debt}/payment', [DebtController::class, 'payment']);
+        Route::post('debts/{debt}/collect', [DebtController::class, 'collect']);
+        Route::post('debts/{debt}/reopen', [DebtController::class, 'reopen']);
+        Route::get('debts-summary', [DebtController::class, 'summary']);
 
-    Route::apiResource('budgets', BudgetController::class);
+        Route::apiResource('categories', CategoryController::class);
+        Route::get('categories/{category}/statistics', [CategoryController::class, 'statistics']);
+        Route::get('categories-summary', [CategoryController::class, 'summary']);
 
-    // Recurring Transactions
-    Route::get('recurring-upcoming', [RecurringTransactionController::class, 'upcoming']);
-    Route::apiResource('recurring', RecurringTransactionController::class);
-    Route::post('recurring/{recurring}/skip', [RecurringTransactionController::class, 'skip']);
+        Route::apiResource('transactions', TransactionController::class);
+        Route::post('transactions/{transaction}/duplicate', [TransactionController::class, 'duplicate']);
+        Route::get('transactions-summary', [TransactionController::class, 'summary']);
 
-    Route::apiResource('tags', TagController::class);
+        Route::apiResource('budgets', BudgetController::class);
 
-    Route::apiResource('users', UserController::class);
+        // Recurring Transactions
+        Route::get('recurring-upcoming', [RecurringTransactionController::class, 'upcoming']);
+        Route::apiResource('recurring', RecurringTransactionController::class);
+        Route::post('recurring/{recurring}/skip', [RecurringTransactionController::class, 'skip']);
 
-    Route::get('reports/overview', [ReportController::class, 'overview']);
-    Route::get('reports/money-flow', [ReportController::class, 'moneyFlow']);
-    Route::get('reports/expense-pace', [ReportController::class, 'expensePace']);
-    Route::get('reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
-    Route::get('reports/cash-flow-over-time', [ReportController::class, 'cashFlowOverTime']);
-    Route::get('reports/activity-heatmap', [ReportController::class, 'activityHeatmap']);
+        Route::apiResource('tags', TagController::class);
 
-    // Transaction Reports (Expenses/Income tabs)
-    Route::get('reports/transactions/summary', [ReportController::class, 'transactionSummary']);
-    Route::get('reports/transactions/by-category', [ReportController::class, 'transactionsByCategory']);
-    Route::get('reports/transactions/dynamics', [ReportController::class, 'transactionDynamics']);
-    Route::get('reports/transactions/top', [ReportController::class, 'topTransactions']);
+        Route::get('reports/overview', [ReportController::class, 'overview']);
+        Route::get('reports/money-flow', [ReportController::class, 'moneyFlow']);
+        Route::get('reports/expense-pace', [ReportController::class, 'expensePace']);
+        Route::get('reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
+        Route::get('reports/cash-flow-over-time', [ReportController::class, 'cashFlowOverTime']);
+        Route::get('reports/activity-heatmap', [ReportController::class, 'activityHeatmap']);
 
-    // Net Worth
-    Route::get('reports/net-worth', [ReportController::class, 'netWorth']);
-    Route::get('reports/net-worth-history', [ReportController::class, 'netWorthHistory']);
+        // Transaction Reports (Expenses/Income tabs)
+        Route::get('reports/transactions/summary', [ReportController::class, 'transactionSummary']);
+        Route::get('reports/transactions/by-category', [ReportController::class, 'transactionsByCategory']);
+        Route::get('reports/transactions/dynamics', [ReportController::class, 'transactionDynamics']);
+        Route::get('reports/transactions/top', [ReportController::class, 'topTransactions']);
 
-    // Settings
-    Route::get('settings', [SettingsController::class, 'index']);
-    Route::patch('settings', [SettingsController::class, 'update']);
+        // Net Worth
+        Route::get('reports/net-worth', [ReportController::class, 'netWorth']);
+        Route::get('reports/net-worth-history', [ReportController::class, 'netWorthHistory']);
 
-    // Automation Rules
-    Route::get('automation-rules/triggers', [AutomationRuleController::class, 'triggers']);
-    Route::apiResource('automation-rules', AutomationRuleController::class);
-    Route::post('automation-rules/{automationRule}/toggle', [AutomationRuleController::class, 'toggle']);
-    Route::post('automation-rules/{automationRule}/test', [AutomationRuleController::class, 'test']);
-    Route::get('automation-rules/{automationRule}/logs', [AutomationRuleController::class, 'logs']);
-    Route::post('automation-rules/reorder', [AutomationRuleController::class, 'reorder']);
+        // Settings (admin + read-write can modify)
+        Route::get('settings', [SettingsController::class, 'index']);
+        Route::patch('settings', [SettingsController::class, 'update']);
+
+        // Automation Rules
+        Route::get('automation-rules/triggers', [AutomationRuleController::class, 'triggers']);
+        Route::apiResource('automation-rules', AutomationRuleController::class);
+        Route::post('automation-rules/{automationRule}/toggle', [AutomationRuleController::class, 'toggle']);
+        Route::post('automation-rules/{automationRule}/test', [AutomationRuleController::class, 'test']);
+        Route::get('automation-rules/{automationRule}/logs', [AutomationRuleController::class, 'logs']);
+        Route::post('automation-rules/reorder', [AutomationRuleController::class, 'reorder']);
+    });
 });
 

@@ -22,7 +22,8 @@ import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export function createTagColumns(
-    onDelete: (id: number) => void
+    onDelete: (id: number) => void,
+    isReadOnly?: boolean
 ): ColumnDef<Tag>[] {
     return [
         {
@@ -59,6 +60,7 @@ export function createTagColumns(
                                     Edit
                                 </Link>
                             </DropdownMenuItem>
+                            {!isReadOnly && (
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <DropdownMenuItem
@@ -88,6 +90,7 @@ export function createTagColumns(
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )

@@ -30,7 +30,8 @@ function formatBalance(amount: number, currency?: { symbol: string; decimals: nu
 }
 
 export const createAccountColumns = (
-    onDelete: (id: number) => void
+    onDelete: (id: number) => void,
+    isReadOnly?: boolean
 ): ColumnDef<Account>[] => [
     {
         accessorKey: 'name',
@@ -108,6 +109,8 @@ export const createAccountColumns = (
                             Edit
                         </Link>
                     </DropdownMenuItem>
+                    {!isReadOnly && (
+                    <>
                     <DropdownMenuSeparator />
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -138,6 +141,8 @@ export const createAccountColumns = (
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                    </>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         ),

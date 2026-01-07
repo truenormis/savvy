@@ -24,6 +24,7 @@ import { useCurrencies } from '@/hooks'
 import { REGULAR_ACCOUNT_TYPE_CONFIG, REGULAR_ACCOUNT_TYPES } from '@/constants'
 import type { RegularAccountType } from '@/types'
 import { cn } from '@/lib/utils'
+import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface AccountFormProps {
     defaultValues?: Partial<AccountFormData>
@@ -53,6 +54,7 @@ export function AccountForm({
     })
 
     return (
+        <FormWrapper>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-md space-y-4">
                 <FormField
@@ -185,5 +187,6 @@ export function AccountForm({
                 </Button>
             </form>
         </Form>
+        </FormWrapper>
     )
 }

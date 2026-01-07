@@ -26,7 +26,8 @@ import { getUserAvatarUrl, getUserInitials } from '@/lib/avatar'
 
 export const createUserColumns = (
     onDelete: (id: number) => void,
-    currentUserId?: number
+    currentUserId?: number,
+    isReadOnly?: boolean
 ): ColumnDef<User>[] => [
     {
         accessorKey: 'name',
@@ -52,6 +53,13 @@ export const createUserColumns = (
         ),
     },
     {
+        accessorKey: 'role',
+        header: 'Role',
+        cell: ({ row }) => (
+            <span className="capitalize">{row.original.role}</span>
+        ),
+    },
+    {
         id: 'actions',
         header: '',
         cell: ({ row }) => {
@@ -71,6 +79,8 @@ export const createUserColumns = (
                                 Edit
                             </Link>
                         </DropdownMenuItem>
+                        {!isReadOnly && (
+                        <>
                         <DropdownMenuSeparator />
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -102,6 +112,8 @@ export const createUserColumns = (
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
+                        </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             )

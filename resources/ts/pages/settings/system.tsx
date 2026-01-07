@@ -1,4 +1,4 @@
-import { Page, PageHeader } from '@/components/shared'
+import { Page, PageHeader, FormWrapper } from '@/components/shared'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -20,6 +20,7 @@ export default function SystemSettingsPage() {
                 description="Configure system settings"
             />
 
+            <FormWrapper>
             <div className="space-y-6">
                 <Card>
                     <CardHeader>
@@ -59,6 +60,7 @@ export default function SystemSettingsPage() {
                     </CardContent>
                 </Card>
             </div>
+            </FormWrapper>
         </Page>
     )
 }
