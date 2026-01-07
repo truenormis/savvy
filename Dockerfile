@@ -33,6 +33,7 @@ COPY --from=backend /app/resources ./resources
 COPY --from=backend /app/app ./app
 COPY --from=backend /app/artisan ./artisan
 COPY --from=backend /app/database ./database
+COPY --from=backend /app/composer.json ./composer.json
 
 COPY --from=frontend /app/public/build ./public/build
 
