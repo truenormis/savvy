@@ -11,7 +11,8 @@ class TwoFactorService
 {
     private const ISSUER = 'Savvy';
     private const RECOVERY_CODE_COUNT = 8;
-    private const RECOVERY_CODE_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789[]!@';
+    // Unambiguous alphanumeric characters (no 0, 1, i, l, o to avoid confusion)
+    private const RECOVERY_CODE_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789';
 
     /**
      * Enable 2FA for user - generates secret and returns QR code data
