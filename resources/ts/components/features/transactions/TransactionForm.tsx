@@ -12,20 +12,13 @@ import {
     FormControl,
     FormMessage,
 } from '@/components/ui/form'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import { transactionSchema, TransactionFormValues } from '@/schemas/transactions'
 import { useAccounts, useCategories, useTags } from '@/hooks'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Wallet } from 'lucide-react'
+import { Plus, Trash2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { ACCOUNT_TYPE_CONFIG } from '@/constants'
-import type { AccountType } from '@/types'
+import { AccountSelect } from '@/components/shared/AccountSelect'
+import { CategorySelect } from '@/components/shared/CategorySelect'
 
 const TRANSACTION_TYPES = [
     { value: 'income', label: 'Income', icon: ArrowDownLeft, color: 'text-green-600' },
@@ -36,6 +29,7 @@ const TRANSACTION_TYPES = [
 interface TransactionFormProps {
     defaultValues?: Partial<TransactionFormValues>
     onSubmit: (data: TransactionFormValues) => void
+    onTypeChange?: (type: TransactionFormValues['type']) => void
     isSubmitting?: boolean
     submitLabel?: string
 }
@@ -43,6 +37,7 @@ interface TransactionFormProps {
 export function TransactionForm({
     defaultValues,
     onSubmit,
+    onTypeChange,
     isSubmitting,
     submitLabel = 'Save',
 }: TransactionFormProps) {
@@ -241,7 +236,10 @@ export function TransactionForm({
                         <button
                             key={value}
                             type="button"
-                            onClick={() => form.setValue('type', value)}
+                            onClick={() => {
+                                form.setValue('type', value)
+                                onTypeChange?.(value)
+                            }}
                             className={cn(
                                 'flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-all',
                                 transactionType === value
@@ -265,36 +263,10 @@ export function TransactionForm({
                                 <FormLabel>
                                     {transactionType === 'transfer' ? 'From Account' : 'Account'}
                                 </FormLabel>
-                                <Select
-                                    onValueChange={field.onChange}
-                                    value={field.value ? field.value.toString() : undefined}
-                                >
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select account" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {accounts?.map((account) => {
-                                            const config = ACCOUNT_TYPE_CONFIG[account.type as AccountType]
-                                            const Icon = config?.icon || Wallet
-                                            return (
-                                                <SelectItem
-                                                    key={account.id}
-                                                    value={account.id.toString()}
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <Icon className={cn('size-4', config?.textColor)} />
-                                                        <span>{account.name}</span>
-                                                        <span className="text-muted-foreground">
-                                                            {account.currency?.symbol}
-                                                        </span>
-                                                    </div>
-                                                </SelectItem>
-                                            )
-                                        })}
-                                    </SelectContent>
-                                </Select>
+                                <AccountSelect
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                />
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -308,38 +280,11 @@ export function TransactionForm({
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>To Account</FormLabel>
-                                    <Select
-                                        onValueChange={field.onChange}
-                                        value={field.value ? field.value.toString() : undefined}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select account" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {accounts
-                                                ?.filter(a => a.id !== Number(accountId))
-                                                .map((account) => {
-                                                    const config = ACCOUNT_TYPE_CONFIG[account.type as AccountType]
-                                                    const Icon = config?.icon || Wallet
-                                                    return (
-                                                        <SelectItem
-                                                            key={account.id}
-                                                            value={account.id.toString()}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <Icon className={cn('size-4', config?.textColor)} />
-                                                                <span>{account.name}</span>
-                                                                <span className="text-muted-foreground">
-                                                                    {account.currency?.symbol}
-                                                                </span>
-                                                            </div>
-                                                        </SelectItem>
-                                                    )
-                                                })}
-                                        </SelectContent>
-                                    </Select>
+                                    <AccountSelect
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        excludeId={Number(accountId)}
+                                    />
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -352,29 +297,11 @@ export function TransactionForm({
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Category</FormLabel>
-                                    <Select
-                                        onValueChange={field.onChange}
-                                        value={field.value ? field.value.toString() : undefined}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select category" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {filteredCategories.map((category) => (
-                                                <SelectItem
-                                                    key={category.id}
-                                                    value={category.id.toString()}
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{category.icon}</span>
-                                                        <span>{category.name}</span>
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <CategorySelect
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        type={transactionType as 'income' | 'expense'}
+                                    />
                                     <FormMessage />
                                 </FormItem>
                             )}

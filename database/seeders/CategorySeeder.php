@@ -10,29 +10,29 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            // Expense categories
-            ['name' => 'Food & Groceries', 'type' => 'expense', 'icon' => '🛒', 'color' => '#22c55e'],
-            ['name' => 'Transport', 'type' => 'expense', 'icon' => '🚗', 'color' => '#3b82f6'],
-            ['name' => 'Housing', 'type' => 'expense', 'icon' => '🏠', 'color' => '#8b5cf6'],
-            ['name' => 'Utilities', 'type' => 'expense', 'icon' => '⚡', 'color' => '#f59e0b'],
-            ['name' => 'Healthcare', 'type' => 'expense', 'icon' => '🏥', 'color' => '#ef4444'],
-            ['name' => 'Entertainment', 'type' => 'expense', 'icon' => '🎮', 'color' => '#ec4899'],
-            ['name' => 'Shopping', 'type' => 'expense', 'icon' => '🛍️', 'color' => '#14b8a6'],
-            ['name' => 'Education', 'type' => 'expense', 'icon' => '🎓', 'color' => '#6366f1'],
-            ['name' => 'Restaurants & Cafes', 'type' => 'expense', 'icon' => '🍽️', 'color' => '#f97316'],
-            ['name' => 'Subscriptions', 'type' => 'expense', 'icon' => '🔄', 'color' => '#a855f7'],
+            // Expense categories (Tailwind 400 - softer colors)
+            ['name' => 'Food & Groceries', 'type' => 'expense', 'icon' => '🛒', 'color' => '#4ade80'],
+            ['name' => 'Transport', 'type' => 'expense', 'icon' => '🚗', 'color' => '#60a5fa'],
+            ['name' => 'Housing', 'type' => 'expense', 'icon' => '🏠', 'color' => '#a78bfa'],
+            ['name' => 'Utilities', 'type' => 'expense', 'icon' => '⚡', 'color' => '#fbbf24'],
+            ['name' => 'Healthcare', 'type' => 'expense', 'icon' => '🏥', 'color' => '#f87171'],
+            ['name' => 'Entertainment', 'type' => 'expense', 'icon' => '🎮', 'color' => '#f472b6'],
+            ['name' => 'Shopping', 'type' => 'expense', 'icon' => '🛍️', 'color' => '#2dd4bf'],
+            ['name' => 'Education', 'type' => 'expense', 'icon' => '🎓', 'color' => '#818cf8'],
+            ['name' => 'Restaurants & Cafes', 'type' => 'expense', 'icon' => '🍽️', 'color' => '#fb923c'],
+            ['name' => 'Subscriptions', 'type' => 'expense', 'icon' => '🔄', 'color' => '#c084fc'],
             ['name' => 'Personal Care', 'type' => 'expense', 'icon' => '✨', 'color' => '#e879f9'],
             ['name' => 'Gifts', 'type' => 'expense', 'icon' => '🎁', 'color' => '#fb7185'],
-            ['name' => 'Travel', 'type' => 'expense', 'icon' => '✈️', 'color' => '#0ea5e9'],
-            ['name' => 'Other Expenses', 'type' => 'expense', 'icon' => '📌', 'color' => '#64748b'],
+            ['name' => 'Travel', 'type' => 'expense', 'icon' => '✈️', 'color' => '#38bdf8'],
+            ['name' => 'Other Expenses', 'type' => 'expense', 'icon' => '📌', 'color' => '#94a3b8'],
 
-            // Income categories
-            ['name' => 'Salary', 'type' => 'income', 'icon' => '💵', 'color' => '#22c55e'],
-            ['name' => 'Freelance', 'type' => 'income', 'icon' => '💻', 'color' => '#3b82f6'],
-            ['name' => 'Investments', 'type' => 'income', 'icon' => '📈', 'color' => '#8b5cf6'],
-            ['name' => 'Gifts Received', 'type' => 'income', 'icon' => '🎀', 'color' => '#ec4899'],
-            ['name' => 'Refunds', 'type' => 'income', 'icon' => '↩️', 'color' => '#14b8a6'],
-            ['name' => 'Other Income', 'type' => 'income', 'icon' => '💰', 'color' => '#64748b'],
+            // Income categories (Tailwind 400 - softer colors)
+            ['name' => 'Salary', 'type' => 'income', 'icon' => '💵', 'color' => '#4ade80'],
+            ['name' => 'Freelance', 'type' => 'income', 'icon' => '💻', 'color' => '#60a5fa'],
+            ['name' => 'Investments', 'type' => 'income', 'icon' => '📈', 'color' => '#a78bfa'],
+            ['name' => 'Gifts Received', 'type' => 'income', 'icon' => '🎀', 'color' => '#f472b6'],
+            ['name' => 'Refunds', 'type' => 'income', 'icon' => '↩️', 'color' => '#2dd4bf'],
+            ['name' => 'Other Income', 'type' => 'income', 'icon' => '💰', 'color' => '#94a3b8'],
         ];
 
         foreach ($categories as $category) {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins } from 'lucide-react'
+import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 import {
     Sidebar,
@@ -12,6 +12,9 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubItem,
+    SidebarMenuSubButton,
     SidebarFooter,
     SidebarRail,
 } from '@/components/ui/sidebar'
@@ -21,16 +24,20 @@ import { APP_VERSION } from '@/version'
 const mainItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/transactions', icon: Receipt, label: 'Transactions' },
+    { to: '/recurring', icon: Repeat, label: 'Recurring' },
+    { to: '/automation', icon: Zap, label: 'Automation' },
     { to: '/budgets', icon: PiggyBank, label: 'Budgets' },
     { to: '/debts', icon: HandCoins, label: 'Debts' },
     { to: '/reports', icon: BarChart3, label: 'Reports' },
 ]
 
 const settingsItems = [
+    { to: '/settings/system', icon: Cog, label: 'System' },
     { to: '/accounts', icon: CreditCard, label: 'Accounts' },
     { to: '/categories', icon: FolderTree, label: 'Categories' },
     { to: '/currencies', icon: Coins, label: 'Currencies' },
     { to: '/tags', icon: Hash, label: 'Tags' },
+    { to: '/users', icon: Users, label: 'Users' },
 ]
 
 export function AppSidebar() {
@@ -85,37 +92,37 @@ export function AppSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
 
-                <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
-                    <SidebarGroup>
-                        <CollapsibleTrigger asChild>
-                            <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent rounded-md transition-colors">
-                                <Settings className="size-3 mr-1" />
-                                Settings
-                                <ChevronDown className={`ml-auto size-4 transition-transform duration-200 ${settingsOpen ? '' : '-rotate-90'}`} />
-                            </SidebarGroupLabel>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                            <SidebarGroupContent>
-                                <SidebarMenu>
-                                    {settingsItems.map(({ to, icon: Icon, label }) => (
-                                        <SidebarMenuItem key={to}>
-                                            <SidebarMenuButton
-                                                asChild
-                                                isActive={isActive(to)}
-                                                tooltip={label}
-                                            >
-                                                <NavLink to={to}>
-                                                    <Icon />
-                                                    <span>{label}</span>
-                                                </NavLink>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                    ))}
-                                </SidebarMenu>
-                            </SidebarGroupContent>
-                        </CollapsibleContent>
-                    </SidebarGroup>
-                </Collapsible>
+                <SidebarGroup>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen} className="group/collapsible">
+                                <SidebarMenuItem>
+                                    <CollapsibleTrigger asChild>
+                                        <SidebarMenuButton tooltip="Settings">
+                                            <Settings />
+                                            <span>Settings</span>
+                                            <ChevronDown className={`ml-auto transition-transform duration-200 ${settingsOpen ? '' : '-rotate-90'}`} />
+                                        </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <SidebarMenuSub>
+                                            {settingsItems.map(({ to, icon: Icon, label }) => (
+                                                <SidebarMenuSubItem key={to}>
+                                                    <SidebarMenuSubButton asChild isActive={isActive(to)}>
+                                                        <NavLink to={to}>
+                                                            <Icon />
+                                                            <span>{label}</span>
+                                                        </NavLink>
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                            ))}
+                                        </SidebarMenuSub>
+                                    </CollapsibleContent>
+                                </SidebarMenuItem>
+                            </Collapsible>
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
             </SidebarContent>
 
             <SidebarFooter>

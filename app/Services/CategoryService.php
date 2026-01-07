@@ -44,6 +44,11 @@ class CategoryService
             throw new \DomainException('Cannot delete category that has transactions.');
         }
 
+        $countSameType = Category::where('type', $category->type)->count();
+        if ($countSameType <= 1) {
+            throw new \DomainException('Cannot delete the last category of this type.');
+        }
+
         $category->delete();
     }
 

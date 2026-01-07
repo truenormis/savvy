@@ -19,6 +19,8 @@ interface CurrencyFormProps {
     isSubmitting?: boolean
     submitLabel?: string
     isEditing?: boolean
+    autoUpdateEnabled?: boolean
+    isBase?: boolean
 }
 
 export function CurrencyForm({
@@ -27,6 +29,8 @@ export function CurrencyForm({
     isSubmitting,
     submitLabel = 'Save',
     isEditing = false,
+    autoUpdateEnabled = false,
+    isBase = false,
 }: CurrencyFormProps) {
     const form = useForm<CurrencyFormData>({
         resolver: zodResolver(currencySchema),
@@ -124,11 +128,16 @@ export function CurrencyForm({
                                         type="number"
                                         step="0.000001"
                                         min={0}
+                                        disabled={isBase || autoUpdateEnabled}
                                         {...field}
                                     />
                                 </FormControl>
                                 <FormDescription>
-                                    Rate relative to base currency
+                                    {isBase
+                                        ? 'Base currency rate is always 1'
+                                        : autoUpdateEnabled
+                                            ? 'Auto-update is enabled. Rates are updated automatically.'
+                                            : 'Rate relative to base currency'}
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>

@@ -28,6 +28,13 @@ export function useBalanceHistory(params?: { start_date?: string; end_date?: str
     })
 }
 
+export function useBalanceComparison() {
+    return useQuery({
+        queryKey: [...QUERY_KEY, 'balance-comparison'],
+        queryFn: () => accountsApi.getBalanceComparison(),
+    })
+}
+
 export function useAccount(id: string | number) {
     return useQuery({
         queryKey: [...QUERY_KEY, id],

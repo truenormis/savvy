@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { cn } from '@/lib/utils'
 import {
     ColumnDef,
     flexRender,
@@ -43,6 +44,7 @@ interface DataTableProps<T> {
     emptyAction?: React.ReactNode
     renderSubComponent?: (props: { row: Row<T> }) => React.ReactNode
     getRowCanExpand?: (row: Row<T>) => boolean
+    getRowClassName?: (row: Row<T>) => string | undefined
 }
 
 function DataTableSkeleton({ columns }: { columns: number }) {
@@ -181,6 +183,7 @@ export function DataTable<T>({
     emptyAction,
     renderSubComponent,
     getRowCanExpand,
+    getRowClassName,
 }: DataTableProps<T>) {
     const table = useReactTable({
         data,
@@ -227,7 +230,10 @@ export function DataTable<T>({
                 <TableBody>
                     {table.getRowModel().rows.map((row) => (
                         <Fragment key={row.id}>
-                            <TableRow data-state={row.getIsSelected() && 'selected'}>
+                            <TableRow
+                                data-state={row.getIsSelected() && 'selected'}
+                                className={cn(getRowClassName?.(row))}
+                            >
                                 {row.getVisibleCells().map((cell) => (
                                     <TableCell key={cell.id}>
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}

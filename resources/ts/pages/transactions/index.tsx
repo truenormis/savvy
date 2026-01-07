@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryStates, parseAsInteger, parseAsString, parseAsArrayOf, parseAsStringLiteral } from 'nuqs'
 import { Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Filter, ArrowUpDown, X } from 'lucide-react'
 import { Row } from '@tanstack/react-table'
 import { Page, PageHeader, DataTable } from '@/components/shared'
@@ -21,11 +22,11 @@ import {
 } from '@/components/ui/collapsible'
 import { createTransactionColumns } from '@/components/features/transactions'
 import { useTransactions, useDeleteTransaction, useDuplicateTransaction, useCategories, useTags } from '@/hooks'
-import { TransactionFilters, TransactionType, Transaction } from '@/types'
+import { TransactionType, Transaction } from '@/types'
 import { cn } from '@/lib/utils'
 
-const TYPE_FILTERS: { value: TransactionType | undefined; label: string; icon?: typeof ArrowDownLeft }[] = [
-    { value: undefined, label: 'All' },
+const TYPE_FILTERS: { value: TransactionType | null; label: string; icon?: typeof ArrowDownLeft }[] = [
+    { value: null, label: 'All' },
     { value: 'income', label: 'Income', icon: ArrowDownLeft },
     { value: 'expense', label: 'Expense', icon: ArrowUpRight },
     { value: 'transfer', label: 'Transfer', icon: ArrowLeftRight },
@@ -68,15 +69,32 @@ const SORT_OPTIONS = [
     { value: 'amount:asc', label: 'Amount (Low to High)' },
 ]
 
+const transactionSearchParams = {
+    type: parseAsStringLiteral(['income', 'expense', 'transfer'] as const),
+    sortBy: parseAsStringLiteral(['date', 'amount'] as const).withDefault('date'),
+    sortDir: parseAsStringLiteral(['asc', 'desc'] as const).withDefault('desc'),
+    page: parseAsInteger.withDefault(1),
+    categoryIds: parseAsArrayOf(parseAsInteger).withDefault([]),
+    tagIds: parseAsArrayOf(parseAsInteger).withDefault([]),
+    startDate: parseAsString,
+    endDate: parseAsString,
+}
+
 export default function TransactionsPage() {
-    const [filters, setFilters] = useState<TransactionFilters & { with_summary?: boolean }>({
-        per_page: 20,
-        page: 1,
-        with_summary: true,
-        sort_by: 'date',
-        sort_direction: 'desc',
-    })
+    const [params, setParams] = useQueryStates(transactionSearchParams)
     const [filtersOpen, setFiltersOpen] = useState(false)
+
+    const filters = {
+        per_page: 20,
+        page: params.page,
+        type: params.type ?? undefined,
+        sort_by: params.sortBy,
+        sort_direction: params.sortDir,
+        category_ids: params.categoryIds.length > 0 ? params.categoryIds : undefined,
+        tag_ids: params.tagIds.length > 0 ? params.tagIds : undefined,
+        start_date: params.startDate ?? undefined,
+        end_date: params.endDate ?? undefined,
+    }
 
     const { data, isLoading } = useTransactions(filters)
     const deleteTransaction = useDeleteTransaction()
@@ -90,50 +108,44 @@ export default function TransactionsPage() {
     )
 
     const transactions = data?.data ?? []
-    const summary = data?.summary
     const meta = data?.meta
 
     const activeFiltersCount = [
-        filters.category_ids?.length,
-        filters.tag_ids?.length,
-        filters.start_date,
-        filters.end_date,
+        params.categoryIds.length > 0,
+        params.tagIds.length > 0,
+        params.startDate,
+        params.endDate,
     ].filter(Boolean).length
 
     const clearFilters = () => {
-        setFilters(f => ({
-            ...f,
-            category_ids: undefined,
-            tag_ids: undefined,
-            start_date: undefined,
-            end_date: undefined,
+        setParams({
+            categoryIds: null,
+            tagIds: null,
+            startDate: null,
+            endDate: null,
             page: 1,
-        }))
+        })
     }
 
     const toggleCategory = (id: number) => {
-        setFilters(f => {
-            const current = f.category_ids ?? []
-            const newIds = current.includes(id)
-                ? current.filter(c => c !== id)
-                : [...current, id]
-            return { ...f, category_ids: newIds.length ? newIds : undefined, page: 1 }
-        })
+        const current = params.categoryIds
+        const newIds = current.includes(id)
+            ? current.filter(c => c !== id)
+            : [...current, id]
+        setParams({ categoryIds: newIds.length ? newIds : null, page: 1 })
     }
 
     const toggleTag = (id: number) => {
-        setFilters(f => {
-            const current = f.tag_ids ?? []
-            const newIds = current.includes(id)
-                ? current.filter(t => t !== id)
-                : [...current, id]
-            return { ...f, tag_ids: newIds.length ? newIds : undefined, page: 1 }
-        })
+        const current = params.tagIds
+        const newIds = current.includes(id)
+            ? current.filter(t => t !== id)
+            : [...current, id]
+        setParams({ tagIds: newIds.length ? newIds : null, page: 1 })
     }
 
     // Filter categories based on selected type
     const filteredCategories = categories?.filter(c =>
-        !filters.type || filters.type === 'transfer' || c.type === filters.type
+        !params.type || params.type === 'transfer' || c.type === params.type
     ) ?? []
 
     return (
@@ -141,50 +153,9 @@ export default function TransactionsPage() {
             <PageHeader
                 title="Transactions"
                 description="Track your income, expenses and transfers"
-                createLink="/transactions/create"
+                createLink={params.type ? `/transactions/create?type=${params.type}` : '/transactions/create'}
                 createLabel="New Transaction"
             />
-
-            {/* Summary Cards */}
-            {summary && (
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                    <Card>
-                        <CardContent className="pt-4">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                <ArrowDownLeft className="size-4 text-green-600" />
-                                Income
-                            </div>
-                            <div className="text-2xl font-bold text-green-600">
-                                +{(Number(summary.income) || 0).toFixed(2)} {summary.currency}
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-4">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                <ArrowUpRight className="size-4 text-red-600" />
-                                Expenses
-                            </div>
-                            <div className="text-2xl font-bold text-red-600">
-                                -{(Number(summary.expense) || 0).toFixed(2)} {summary.currency}
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-4">
-                            <div className="text-sm text-muted-foreground mb-1">
-                                Balance
-                            </div>
-                            <div className={cn(
-                                'text-2xl font-bold',
-                                (Number(summary.balance) || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                            )}>
-                                {(Number(summary.balance) || 0) >= 0 ? '+' : ''}{(Number(summary.balance) || 0).toFixed(2)} {summary.currency}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
 
             {/* Type Filter & Sort */}
             <div className="flex items-center justify-between gap-4 mb-4">
@@ -192,9 +163,9 @@ export default function TransactionsPage() {
                     {TYPE_FILTERS.map(({ value, label, icon: Icon }) => (
                         <Button
                             key={label}
-                            variant={filters.type === value ? 'default' : 'outline'}
+                            variant={params.type === value ? 'default' : 'outline'}
                             size="sm"
-                            onClick={() => setFilters(f => ({ ...f, type: value, page: 1 }))}
+                            onClick={() => setParams({ type: value, page: 1 })}
                         >
                             {Icon && <Icon className="size-4 mr-1" />}
                             {label}
@@ -203,10 +174,10 @@ export default function TransactionsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <Select
-                        value={`${filters.sort_by}:${filters.sort_direction}`}
+                        value={`${params.sortBy}:${params.sortDir}`}
                         onValueChange={(val) => {
-                            const [sort_by, sort_direction] = val.split(':') as ['date' | 'amount', 'asc' | 'desc']
-                            setFilters(f => ({ ...f, sort_by, sort_direction, page: 1 }))
+                            const [sortBy, sortDir] = val.split(':') as ['date' | 'amount', 'asc' | 'desc']
+                            setParams({ sortBy, sortDir, page: 1 })
                         }}
                     >
                         <SelectTrigger className="w-[180px] h-9">
@@ -254,23 +225,21 @@ export default function TransactionsPage() {
                                 <div className="flex items-center gap-2">
                                     <Input
                                         type="date"
-                                        value={filters.start_date ?? ''}
-                                        onChange={(e) => setFilters(f => ({
-                                            ...f,
-                                            start_date: e.target.value || undefined,
+                                        value={params.startDate ?? ''}
+                                        onChange={(e) => setParams({
+                                            startDate: e.target.value || null,
                                             page: 1
-                                        }))}
+                                        })}
                                         className="w-auto"
                                     />
                                     <span className="text-muted-foreground">to</span>
                                     <Input
                                         type="date"
-                                        value={filters.end_date ?? ''}
-                                        onChange={(e) => setFilters(f => ({
-                                            ...f,
-                                            end_date: e.target.value || undefined,
+                                        value={params.endDate ?? ''}
+                                        onChange={(e) => setParams({
+                                            endDate: e.target.value || null,
                                             page: 1
-                                        }))}
+                                        })}
                                         className="w-auto"
                                     />
                                 </div>
@@ -282,7 +251,7 @@ export default function TransactionsPage() {
                                     <label className="text-sm font-medium mb-2 block">Categories</label>
                                     <div className="flex flex-wrap gap-2">
                                         {filteredCategories.map((category) => {
-                                            const isSelected = filters.category_ids?.includes(category.id)
+                                            const isSelected = params.categoryIds.includes(category.id)
                                             return (
                                                 <Badge
                                                     key={category.id}
@@ -307,7 +276,7 @@ export default function TransactionsPage() {
                                     <label className="text-sm font-medium mb-2 block">Tags</label>
                                     <div className="flex flex-wrap gap-2">
                                         {tags.map((tag) => {
-                                            const isSelected = filters.tag_ids?.includes(tag.id)
+                                            const isSelected = params.tagIds.includes(tag.id)
                                             return (
                                                 <Badge
                                                     key={tag.id}
@@ -338,7 +307,7 @@ export default function TransactionsPage() {
                 emptyDescription="Create your first transaction to start tracking"
                 emptyAction={
                     <Button asChild>
-                        <Link to="/transactions/create">
+                        <Link to={params.type ? `/transactions/create?type=${params.type}` : '/transactions/create'}>
                             <Plus className="size-4" />
                             New Transaction
                         </Link>
@@ -358,7 +327,7 @@ export default function TransactionsPage() {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setFilters(f => ({ ...f, page: (f.page ?? 1) - 1 }))}
+                            onClick={() => setParams({ page: params.page - 1 })}
                             disabled={meta.current_page === 1}
                         >
                             Previous
@@ -366,7 +335,7 @@ export default function TransactionsPage() {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setFilters(f => ({ ...f, page: (f.page ?? 1) + 1 }))}
+                            onClick={() => setParams({ page: params.page + 1 })}
                             disabled={meta.current_page === meta.last_page}
                         >
                             Next

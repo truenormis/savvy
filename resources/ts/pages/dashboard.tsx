@@ -27,45 +27,20 @@ import {
     HandCoins,
     Banknote,
     TrendingDown,
-    TrendingUp
+    TrendingUp,
+    Repeat
 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
-import { useTotalBalance, useTransactions, useBalanceHistory, useAccounts, useCategorySummary, useBudgets, useDebtsWithSummary } from '@/hooks'
+import { useTotalBalance, useTransactions, useBalanceHistory, useAccounts, useCategorySummary, useBudgets, useDebtsWithSummary, useBalanceComparison, useUpcomingRecurring } from '@/hooks'
+import { useOverviewMetrics } from '@/hooks/use-reports'
+import type { ReportFilters } from '@/pages/reports/types'
+import { cn } from '@/lib/utils'
 import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { useTheme } from '@/hooks/use-theme'
 import { Link, useNavigate } from 'react-router-dom'
 import { Transaction, AccountType } from '@/types'
-import { ACCOUNT_TYPE_CONFIG } from '@/constants'
-
-const CHART_COLORS = [
-    '#3b82f6', // blue
-    '#10b981', // green
-    '#f59e0b', // amber
-    '#ef4444', // red
-    '#8b5cf6', // violet
-    '#ec4899', // pink
-    '#06b6d4', // cyan
-    '#84cc16', // lime
-]
-
-const PIE_COLORS = [
-    '#ef4444', // red
-    '#f97316', // orange
-    '#f59e0b', // amber
-    '#eab308', // yellow
-    '#84cc16', // lime
-    '#22c55e', // green
-    '#14b8a6', // teal
-    '#06b6d4', // cyan
-    '#0ea5e9', // sky
-    '#3b82f6', // blue
-    '#6366f1', // indigo
-    '#8b5cf6', // violet
-    '#a855f7', // purple
-    '#d946ef', // fuchsia
-    '#ec4899', // pink
-]
+import { ACCOUNT_TYPE_CONFIG, CHART_COLORS, CATEGORY_COLORS } from '@/constants'
 
 type PeriodPreset = 'this_month' | 'last_month' | 'last_3_months' | 'last_6_months' | 'this_year' | 'custom'
 
@@ -168,6 +143,25 @@ export default function DashboardPage() {
     // Current month filters (for summary cards)
     const currentMonthFilters = useMemo(() => getPresetDates('this_month'), [])
 
+    // Report filters for income/expense comparison
+    const reportFilters: ReportFilters = useMemo(() => {
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        return {
+            periodType: 'month',
+            selectedMonth: `${year}-${month}`,
+            selectedQuarter: `${year}-Q${Math.ceil((now.getMonth() + 1) / 3)}`,
+            selectedYear: year.toString(),
+            customStartDate: '',
+            customEndDate: '',
+            compareWith: 'previous_period',
+            accountIds: [],
+            categoryIds: [],
+            tagIds: [],
+        }
+    }, [])
+
     // Chart period filters
     const chartFilters = useMemo(() => {
         if (chartPeriod === 'custom' && customStartDate && customEndDate) {
@@ -185,6 +179,9 @@ export default function DashboardPage() {
     })
     const { data: budgets } = useBudgets()
     const { data: debtsData } = useDebtsWithSummary()
+    const { data: overviewData } = useOverviewMetrics(reportFilters)
+    const { data: balanceComparison } = useBalanceComparison()
+    const { data: upcomingRecurring } = useUpcomingRecurring()
 
     const activeBudgets = useMemo(() => {
         return budgets?.filter(b => b.isActive).slice(0, 4) ?? []
@@ -199,6 +196,34 @@ export default function DashboardPage() {
     const currency = balance?.currency ?? '$'
     const monthIncome = Number(summary?.income) || 0
     const monthExpense = Number(summary?.expense) || 0
+
+    // Calculate percentage changes
+    const balanceChange = useMemo(() => {
+        if (balanceComparison?.previous == null) return null
+        const current = balanceComparison.current
+        const previous = balanceComparison.previous
+        if (previous === 0 && current === 0) return 0
+        if (previous === 0) return 100
+        return ((current - previous) / Math.abs(previous)) * 100
+    }, [balanceComparison])
+
+    const incomeChange = useMemo(() => {
+        if (overviewData?.income?.previous == null) return null
+        const current = overviewData.income.value
+        const previous = overviewData.income.previous
+        if (previous === 0 && current === 0) return 0
+        if (previous === 0) return 100
+        return ((current - previous) / previous) * 100
+    }, [overviewData])
+
+    const expenseChange = useMemo(() => {
+        if (overviewData?.expenses?.previous == null) return null
+        const current = overviewData.expenses.value
+        const previous = overviewData.expenses.previous
+        if (previous === 0 && current === 0) return 0
+        if (previous === 0) return 100
+        return ((current - previous) / previous) * 100
+    }, [overviewData])
 
     const balanceChartOption = useMemo(() => {
         if (!historyData || !historyData.series.length) return {}
@@ -304,7 +329,7 @@ export default function DashboardPage() {
             .map((c, i) => ({
                 name: c.name,
                 value: c.totalAmount ?? 0,
-                itemStyle: { color: c.color || PIE_COLORS[i % PIE_COLORS.length] },
+                itemStyle: { color: c.color || CATEGORY_COLORS[i % CATEGORY_COLORS.length] },
             }))
 
         return {
@@ -370,6 +395,19 @@ export default function DashboardPage() {
                         <div className="text-2xl font-bold font-mono">
                             {totalBalance.toFixed(2)} {currency}
                         </div>
+                        {balanceChange !== null && (
+                            <div className={cn(
+                                "flex items-center gap-1 text-xs mt-1",
+                                balanceChange >= 0 ? "text-green-600" : "text-red-600"
+                            )}>
+                                {balanceChange >= 0 ? (
+                                    <TrendingUp className="size-3" />
+                                ) : (
+                                    <TrendingDown className="size-3" />
+                                )}
+                                <span>{Math.abs(balanceChange).toFixed(1)}%</span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -384,6 +422,19 @@ export default function DashboardPage() {
                         <div className="text-2xl font-bold font-mono text-green-600">
                             +{monthIncome.toFixed(2)} {currency}
                         </div>
+                        {incomeChange !== null && (
+                            <div className={cn(
+                                "flex items-center gap-1 text-xs mt-1",
+                                incomeChange >= 0 ? "text-green-600" : "text-red-600"
+                            )}>
+                                {incomeChange >= 0 ? (
+                                    <TrendingUp className="size-3" />
+                                ) : (
+                                    <TrendingDown className="size-3" />
+                                )}
+                                <span>{Math.abs(incomeChange).toFixed(1)}%</span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -398,6 +449,19 @@ export default function DashboardPage() {
                         <div className="text-2xl font-bold font-mono text-red-600">
                             -{monthExpense.toFixed(2)} {currency}
                         </div>
+                        {expenseChange !== null && (
+                            <div className={cn(
+                                "flex items-center gap-1 text-xs mt-1",
+                                expenseChange <= 0 ? "text-green-600" : "text-red-600"
+                            )}>
+                                {expenseChange >= 0 ? (
+                                    <TrendingUp className="size-3" />
+                                ) : (
+                                    <TrendingDown className="size-3" />
+                                )}
+                                <span>{Math.abs(expenseChange).toFixed(1)}%</span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -793,6 +857,71 @@ export default function DashboardPage() {
                                 <Link to="/debts/create">
                                     <Plus className="size-4 mr-1" />
                                     Add Debt
+                                </Link>
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                        <Repeat className="size-5" />
+                        Upcoming Recurring
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link to="/recurring">
+                            View all
+                            <ArrowRight className="ml-1 size-4" />
+                        </Link>
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {upcomingRecurring && upcomingRecurring.length > 0 ? (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                            {upcomingRecurring.slice(0, 5).map((recurring) => (
+                                <Link
+                                    key={recurring.id}
+                                    to={`/recurring/${recurring.id}/edit`}
+                                    className="block p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                                >
+                                    <div className="flex items-center gap-2 mb-2">
+                                        {recurring.type === 'income' ? (
+                                            <ArrowDownLeft className="size-4 text-green-600" />
+                                        ) : recurring.type === 'expense' ? (
+                                            <ArrowUpRight className="size-4 text-red-600" />
+                                        ) : (
+                                            <ArrowLeftRight className="size-4 text-blue-600" />
+                                        )}
+                                        <p className="font-medium text-sm truncate">
+                                            {recurring.description || recurring.category?.name || 'Recurring'}
+                                        </p>
+                                    </div>
+                                    <p className={`font-mono text-sm ${
+                                        recurring.type === 'income' ? 'text-green-600' :
+                                        recurring.type === 'expense' ? 'text-red-600' : ''
+                                    }`}>
+                                        {recurring.type === 'income' ? '+' : recurring.type === 'expense' ? '-' : ''}
+                                        {recurring.amount.toFixed(2)} {recurring.account.currency?.symbol}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {new Date(recurring.nextRunDate).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric'
+                                        })}
+                                    </p>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <Repeat className="size-12 mx-auto text-muted-foreground/50 mb-3" />
+                            <p className="text-muted-foreground mb-3">No recurring transactions</p>
+                            <Button asChild size="sm">
+                                <Link to="/recurring/create">
+                                    <Plus className="size-4 mr-1" />
+                                    Create Recurring
                                 </Link>
                             </Button>
                         </div>

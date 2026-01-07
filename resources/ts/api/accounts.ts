@@ -27,6 +27,12 @@ export interface BalanceHistoryResponse {
     currency: string
 }
 
+export interface BalanceComparisonResponse {
+    current: number
+    previous: number | null
+    currency: string
+}
+
 export const accountsApi = {
     getAll: (params?: { active?: boolean; exclude_debts?: boolean }) => {
         const searchParams = new URLSearchParams()
@@ -64,6 +70,11 @@ export const accountsApi = {
         if (params?.end_date) searchParams.set('end_date', params.end_date)
         const query = searchParams.toString()
         const response = await apiClient.get(`${ENDPOINT}-balance-history${query ? `?${query}` : ''}`)
+        return response.data
+    },
+
+    getBalanceComparison: async (): Promise<BalanceComparisonResponse> => {
+        const response = await apiClient.get(`${ENDPOINT}-balance-comparison`)
         return response.data
     },
 }

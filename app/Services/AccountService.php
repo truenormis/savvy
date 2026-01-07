@@ -264,6 +264,43 @@ class AccountService
         ];
     }
 
+    public function getBalanceComparison(): array
+    {
+        $baseCurrency = Currency::getBase();
+        if (!$baseCurrency) {
+            return [
+                'current' => 0,
+                'previous' => null,
+                'currency' => '$',
+            ];
+        }
+
+        // Get current total balance
+        $summary = $this->getSummary();
+        $currentBalance = $summary['total_balance'];
+
+        // Get balance at the end of the previous month
+        $lastDayOfPrevMonth = \Carbon\Carbon::now()->subMonth()->endOfMonth()->format('Y-m-d');
+        $firstDayOfPrevMonth = \Carbon\Carbon::now()->subMonth()->startOfMonth()->format('Y-m-d');
+
+        $history = $this->getBalanceHistory($firstDayOfPrevMonth, $lastDayOfPrevMonth);
+
+        // Find the Total series and get the last value
+        $previousBalance = null;
+        foreach ($history['series'] as $series) {
+            if ($series['type'] === 'total' && !empty($series['data'])) {
+                $previousBalance = end($series['data']);
+                break;
+            }
+        }
+
+        return [
+            'current' => $currentBalance,
+            'previous' => $previousBalance,
+            'currency' => $baseCurrency->symbol,
+        ];
+    }
+
     private function loadBalance(Account $account): Account
     {
         $account->setAttribute('current_balance', $account->current_balance);

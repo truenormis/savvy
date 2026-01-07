@@ -11,7 +11,7 @@ class CurrencyService
 {
     public function getAll(): Collection
     {
-        return Currency::orderByDesc('is_base')->orderBy('code')->get();
+        return Currency::orderBy('code')->get();
     }
 
     public function findOrFail(int $id): Currency
@@ -66,6 +66,10 @@ class CurrencyService
 
         if ($currency->is_base) {
             throw new DomainException('Cannot delete base currency. Set another currency as base first.');
+        }
+
+        if (Currency::count() <= 1) {
+            throw new DomainException('Cannot delete the last currency.');
         }
 
         $currency->delete();

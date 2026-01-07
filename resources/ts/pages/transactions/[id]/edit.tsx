@@ -1,16 +1,22 @@
 import { useParams } from 'react-router-dom'
+import { useQueryState, parseAsStringLiteral } from 'nuqs'
 import { FormPage } from '@/components/shared'
 import { TransactionForm } from '@/components/features/transactions'
 import { useTransaction, useUpdateTransaction } from '@/hooks'
+import { TransactionType } from '@/types'
 
 export default function TransactionEditPage() {
     const { id } = useParams<{ id: string }>()
+    const [type, setType] = useQueryState(
+        'type',
+        parseAsStringLiteral(['income', 'expense', 'transfer'] as const)
+    )
     const { data: transaction, isLoading } = useTransaction(id!)
     const updateTransaction = useUpdateTransaction('/transactions')
 
     const defaultValues = transaction
         ? {
-              type: transaction.type,
+              type: (type ?? transaction.type) as TransactionType,
               account_id: transaction.account.id,
               to_account_id: transaction.toAccount?.id ?? null,
               category_id: transaction.category?.id ?? null,
@@ -32,6 +38,7 @@ export default function TransactionEditPage() {
         <FormPage title="Edit Transaction" backLink="/transactions" isLoading={isLoading}>
             <TransactionForm
                 defaultValues={defaultValues}
+                onTypeChange={setType}
                 onSubmit={(data) => updateTransaction.mutate({ id: id!, data })}
                 isSubmitting={updateTransaction.isPending}
                 submitLabel="Save"

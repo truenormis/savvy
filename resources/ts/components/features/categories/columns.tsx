@@ -24,7 +24,8 @@ import {
 import { Category } from '@/types'
 
 export const createCategoryColumns = (
-    onDelete: (id: number) => void
+    onDelete: (id: number) => void,
+    typeCounts: { income: number; expense: number }
 ): ColumnDef<Category>[] => [
     {
         accessorKey: 'name',
@@ -65,52 +66,57 @@ export const createCategoryColumns = (
     {
         id: 'actions',
         header: '',
-        cell: ({ row }) => (
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-8">
-                        <MoreHorizontal className="size-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                        <Link to={`/categories/${row.original.id}/edit`}>
-                            <Pencil className="mr-2 size-4" />
-                            Edit
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <DropdownMenuItem
-                                onSelect={(e) => e.preventDefault()}
-                                className="text-destructive focus:text-destructive"
-                            >
-                                <Trash2 className="mr-2 size-4" />
-                                Delete
-                            </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Delete category?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. The category "{row.original.name}"
-                                    will be permanently deleted.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={() => onDelete(row.original.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        cell: ({ row }) => {
+            const isLastOfType = typeCounts[row.original.type] <= 1
+
+            return (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8">
+                            <MoreHorizontal className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                            <Link to={`/categories/${row.original.id}/edit`}>
+                                <Pencil className="mr-2 size-4" />
+                                Edit
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                    onSelect={(e) => e.preventDefault()}
+                                    className="text-destructive focus:text-destructive"
+                                    disabled={isLastOfType}
                                 >
-                                    Delete
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        ),
+                                    <Trash2 className="mr-2 size-4" />
+                                    {isLastOfType ? "Can't delete last" : 'Delete'}
+                                </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete category?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. The category "{row.original.name}"
+                                        will be permanently deleted.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => onDelete(row.original.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                        Delete
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )
+        },
     },
 ]

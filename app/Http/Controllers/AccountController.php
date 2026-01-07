@@ -79,4 +79,11 @@ class AccountController extends Controller
 
         return response()->json($history);
     }
+
+    public function balanceComparison(): JsonResponse
+    {
+        $comparison = $this->accountService->getBalanceComparison();
+
+        return response()->json($comparison);
+    }
 }

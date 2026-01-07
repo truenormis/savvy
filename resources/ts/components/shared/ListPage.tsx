@@ -1,4 +1,4 @@
-import { ColumnDef } from '@tanstack/react-table'
+import { ColumnDef, Row } from '@tanstack/react-table'
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { Page } from './Page'
@@ -16,6 +16,7 @@ interface ListPageProps<T> {
     isLoading?: boolean
     emptyTitle?: string
     emptyDescription?: string
+    getRowClassName?: (row: Row<T>) => string | undefined
 }
 
 export function ListPage<T>({
@@ -28,6 +29,7 @@ export function ListPage<T>({
     isLoading,
     emptyTitle,
     emptyDescription,
+    getRowClassName,
 }: ListPageProps<T>) {
     return (
         <Page title={title}>
@@ -43,6 +45,7 @@ export function ListPage<T>({
                 isLoading={isLoading}
                 emptyTitle={emptyTitle ?? `No ${title.toLowerCase()} found`}
                 emptyDescription={emptyDescription ?? `Create your first ${title.toLowerCase().slice(0, -1)} to get started`}
+                getRowClassName={getRowClassName}
                 emptyAction={
                     createLink ? (
                         <Button asChild>

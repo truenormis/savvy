@@ -6,6 +6,7 @@ use App\Builders\TransactionQueryBuilder;
 use App\DTOs\TransactionData;
 use App\DTOs\TransactionFilterData;
 use App\Enums\TransactionType;
+use App\Enums\TriggerType;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
@@ -14,6 +15,9 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionService
 {
+    public function __construct(
+        private AutomationService $automationService
+    ) {}
 
     public function getFiltered(TransactionFilterData $filters): LengthAwarePaginator
     {
@@ -33,7 +37,7 @@ class TransactionService
 
     public function create(TransactionData $data): Transaction
     {
-        return DB::transaction(function () use ($data) {
+        $transaction = DB::transaction(function () use ($data) {
             $transactionData = $this->prepareTransactionData($data);
             $transaction = Transaction::create($transactionData);
 
@@ -47,11 +51,16 @@ class TransactionService
 
             return $transaction->load(['account.currency', 'toAccount.currency', 'category', 'items', 'tags']);
         });
+
+        // Process automation rules after transaction is created
+        $this->automationService->process(TriggerType::OnTransactionCreate, $transaction);
+
+        return $transaction->fresh(['account.currency', 'toAccount.currency', 'category', 'items', 'tags']);
     }
 
     public function update(Transaction $transaction, TransactionData $data): Transaction
     {
-        return DB::transaction(function () use ($transaction, $data) {
+        $transaction = DB::transaction(function () use ($transaction, $data) {
             $transactionData = $this->prepareTransactionData($data);
             $transaction->update($transactionData);
 
@@ -69,6 +78,11 @@ class TransactionService
 
             return $transaction->load(['account.currency', 'toAccount.currency', 'category', 'items', 'tags']);
         });
+
+        // Process automation rules after transaction is updated
+        $this->automationService->process(TriggerType::OnTransactionUpdate, $transaction);
+
+        return $transaction->fresh(['account.currency', 'toAccount.currency', 'category', 'items', 'tags']);
     }
 
     public function delete(Transaction $transaction): void

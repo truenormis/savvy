@@ -28,12 +28,14 @@ interface ColumnOptions {
     onDelete: (id: number) => void
     onSetBase: (id: number) => void
     isSettingBase?: boolean
+    currencyCount: number
 }
 
 export const createCurrencyColumns = ({
     onDelete,
     onSetBase,
     isSettingBase,
+    currencyCount,
 }: ColumnOptions): ColumnDef<Currency>[] => [
     {
         accessorKey: 'code',
@@ -96,59 +98,58 @@ export const createCurrencyColumns = ({
     {
         id: 'actions',
         header: '',
-        cell: ({ row }) => (
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-8">
-                        <MoreHorizontal className="size-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                        <Link to={`/currencies/${row.original.id}/edit`}>
-                            <Pencil className="mr-2 size-4" />
-                            Edit
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <DropdownMenuItem
-                                onSelect={(e) => e.preventDefault()}
-                                className="text-destructive focus:text-destructive"
-                                disabled={row.original.isBase}
-                            >
-                                <Trash2 className="mr-2 size-4" />
-                                Delete
-                            </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Delete currency?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. The currency "{row.original.name}" ({row.original.code})
-                                    will be permanently deleted.
-                                    {row.original.isBase && (
-                                        <span className="block mt-2 text-destructive font-medium">
-                                            Cannot delete base currency.
-                                        </span>
-                                    )}
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={() => onDelete(row.original.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    disabled={row.original.isBase}
+        cell: ({ row }) => {
+            const isLast = currencyCount <= 1
+            const cannotDelete = row.original.isBase || isLast
+
+            return (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8">
+                            <MoreHorizontal className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                            <Link to={`/currencies/${row.original.id}/edit`}>
+                                <Pencil className="mr-2 size-4" />
+                                Edit
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                    onSelect={(e) => e.preventDefault()}
+                                    className="text-destructive focus:text-destructive"
+                                    disabled={cannotDelete}
                                 >
-                                    Delete
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        ),
+                                    <Trash2 className="mr-2 size-4" />
+                                    {isLast ? "Can't delete last" : 'Delete'}
+                                </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete currency?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. The currency "{row.original.name}" ({row.original.code})
+                                        will be permanently deleted.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => onDelete(row.original.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                        Delete
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )
+        },
     },
 ]

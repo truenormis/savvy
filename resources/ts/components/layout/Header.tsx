@@ -7,12 +7,14 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Wallet, Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, User, LogOut } from 'lucide-react'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Moon, Sun, Wallet, Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, LogOut } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { useTheme } from '@/hooks/use-theme'
 import { useTotalBalance } from '@/hooks'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
+import { getUserAvatarUrl, getUserInitials } from '@/lib/avatar'
 
 export function Header() {
     const { theme, toggleTheme } = useTheme()
@@ -85,15 +87,28 @@ export function Header() {
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <User className="size-5" />
+                            {user && (
+                            <Button variant="ghost" size="icon" className="rounded-full">
+                                <Avatar className="size-8">
+                                    <AvatarImage src={getUserAvatarUrl(user)} />
+                                    <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
+                                </Avatar>
                             </Button>
+                        )}
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                            <div className="px-2 py-1.5">
-                                <p className="text-sm font-medium">{user?.name}</p>
-                                <p className="text-xs text-muted-foreground">{user?.email}</p>
+                            {user && (
+                            <div className="flex items-center gap-2 px-2 py-1.5">
+                                <Avatar className="size-8">
+                                    <AvatarImage src={getUserAvatarUrl(user)} />
+                                    <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{user.name}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                </div>
                             </div>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={handleLogout}>
                                 <LogOut className="size-4 mr-2" />

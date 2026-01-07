@@ -29,11 +29,18 @@ Open `localhost:3000`.
 ## ✨ Features
 
 - **Multi-currency** — any fiat or crypto, transfers between them
-- **Base currency** — choose your own for reports
-- **Debts** — track loans and borrowings
+- **Auto exchange rates** — currency rates updated automatically via API
+- **Recurring transactions** — scheduled payments (daily, weekly, monthly, yearly)
+- **Automation rules** — auto-categorize transactions based on conditions
+- **Debts** — track loans and borrowings with payment history
+- **Budgets** — set limits and track progress
 - **Categories & tags** — flexible organization
-- **Budgets** — set and track limits
-- **Analytics** — clear visual charts
+- **Multi-user** — share with family or team
+- **Rich analytics** — Sankey diagrams, heatmaps, net worth tracking, expense pace
+
+<p align="center">
+  <img src="docs/images/report.png" alt="Savvy Reports" width="800">
+</p>
 
 ## 🔒 Privacy
 

@@ -31,7 +31,18 @@ const TagEditPage = lazy(() => import('@/pages/tags/[id]/edit'))
 const DebtsPage = lazy(() => import('@/pages/debts'))
 const DebtCreatePage = lazy(() => import('@/pages/debts/create'))
 const DebtEditPage = lazy(() => import('@/pages/debts/[id]/edit'))
+const RecurringPage = lazy(() => import('@/pages/recurring'))
+const RecurringCreatePage = lazy(() => import('@/pages/recurring/create'))
+const RecurringEditPage = lazy(() => import('@/pages/recurring/[id]/edit'))
+const AutomationPage = lazy(() => import('@/pages/automation'))
+const AutomationCreatePage = lazy(() => import('@/pages/automation/create'))
+const AutomationEditPage = lazy(() => import('@/pages/automation/[id]/edit'))
+const AutomationLogsPage = lazy(() => import('@/pages/automation/[id]/logs'))
+const UsersPage = lazy(() => import('@/pages/users'))
+const UserCreatePage = lazy(() => import('@/pages/users/create'))
+const UserEditPage = lazy(() => import('@/pages/users/[id]/edit'))
 const ReportsPage = lazy(() => import('@/pages/reports'))
+const SystemSettingsPage = lazy(() => import('@/pages/settings/system'))
 const NotFoundPage = lazy(() => import('@/pages/not-found'))
 
 const withSuspense = (Component: React.LazyExoticComponent<() => JSX.Element>) => (
@@ -87,7 +98,18 @@ export const router = createBrowserRouter([
                     { path: 'debts', element: withSuspense(DebtsPage) },
                     { path: 'debts/create', element: withSuspense(DebtCreatePage) },
                     { path: 'debts/:id/edit', element: withSuspense(DebtEditPage) },
+                    { path: 'recurring', element: withSuspense(RecurringPage) },
+                    { path: 'recurring/create', element: withSuspense(RecurringCreatePage) },
+                    { path: 'recurring/:id/edit', element: withSuspense(RecurringEditPage) },
+                    { path: 'automation', element: withSuspense(AutomationPage) },
+                    { path: 'automation/create', element: withSuspense(AutomationCreatePage) },
+                    { path: 'automation/:id/edit', element: withSuspense(AutomationEditPage) },
+                    { path: 'automation/:id/logs', element: withSuspense(AutomationLogsPage) },
+                    { path: 'users', element: withSuspense(UsersPage) },
+                    { path: 'users/create', element: withSuspense(UserCreatePage) },
+                    { path: 'users/:id/edit', element: withSuspense(UserEditPage) },
                     { path: 'reports', element: withSuspense(ReportsPage) },
+                    { path: 'settings/system', element: withSuspense(SystemSettingsPage) },
                 ],
             },
         ],

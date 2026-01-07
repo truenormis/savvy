@@ -11,6 +11,7 @@ export default function CurrenciesPage() {
         onDelete: (id) => deleteCurrency.mutate(id),
         onSetBase: (id) => setBaseCurrency.mutate(id),
         isSettingBase: setBaseCurrency.isPending,
+        currencyCount: currencies?.length ?? 0,
     })
 
     return (
