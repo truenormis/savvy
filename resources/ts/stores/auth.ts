@@ -1,8 +1,12 @@
 import { create } from 'zustand'
 import { authApi } from '@/api'
-import { User, LoginCredentials, RegisterData } from '@/types'
+import { User, LoginCredentials, RegisterData, AuthResponse, TwoFactorAuthResponse } from '@/types'
 
 const TOKEN_KEY = 'auth_token'
+
+export type LoginResult =
+    | { success: true }
+    | { success: false; requires_2fa: true; two_factor_token: string }
 
 interface AuthState {
     user: User | null
@@ -11,11 +15,16 @@ interface AuthState {
     isAuthenticated: boolean
 
     // Actions
-    login: (credentials: LoginCredentials) => Promise<void>
+    login: (credentials: LoginCredentials) => Promise<LoginResult>
+    loginWith2FA: (twoFactorToken: string, code: string) => Promise<void>
     register: (data: RegisterData) => Promise<void>
     logout: () => void
     checkAuth: () => Promise<void>
     setToken: (token: string) => void
+}
+
+function isTwoFactorResponse(response: AuthResponse | TwoFactorAuthResponse): response is TwoFactorAuthResponse {
+    return 'requires_2fa' in response && response.requires_2fa === true
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -25,7 +34,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     isAuthenticated: false,
 
     login: async (credentials) => {
-        const { user, token } = await authApi.login(credentials)
+        const response = await authApi.login(credentials)
+
+        if (isTwoFactorResponse(response)) {
+            return {
+                success: false,
+                requires_2fa: true,
+                two_factor_token: response.two_factor_token,
+            }
+        }
+
+        localStorage.setItem(TOKEN_KEY, response.token)
+        set({ user: response.user, token: response.token, isAuthenticated: true })
+        return { success: true }
+    },
+
+    loginWith2FA: async (twoFactorToken, code) => {
+        const { user, token } = await authApi.twoFactorVerify(twoFactorToken, code)
         localStorage.setItem(TOKEN_KEY, token)
         set({ user, token, isAuthenticated: true })
     },

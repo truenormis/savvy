@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AutomationRuleController;
+use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CurrencyController;
@@ -20,11 +21,26 @@ Route::get('auth/status', [AuthController::class, 'status']);
 Route::post('auth/register', [AuthController::class, 'register']);
 Route::post('auth/login', [AuthController::class, 'login']);
 
+// 2FA verification (public - used during login flow)
+Route::post('auth/2fa/verify', [TwoFactorController::class, 'verify']);
+
 // Protected routes
 Route::middleware('jwt')->group(function () {
     // Auth routes (available to all authenticated users)
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::post('auth/refresh', [AuthController::class, 'refresh']);
+
+    // 2FA status (available to all authenticated users)
+    Route::get('auth/2fa/status', [TwoFactorController::class, 'status']);
+
+    // 2FA configuration (not available to read-only users)
+    Route::middleware('write')->group(function () {
+        Route::post('auth/2fa/enable', [TwoFactorController::class, 'enable']);
+        Route::post('auth/2fa/confirm', [TwoFactorController::class, 'confirm']);
+        Route::post('auth/2fa/disable', [TwoFactorController::class, 'disable']);
+        Route::get('auth/2fa/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
+        Route::post('auth/2fa/recovery-codes/regenerate', [TwoFactorController::class, 'regenerateRecoveryCodes']);
+    });
 
     // Users: read for all, write for admin only
     Route::get('users', [UserController::class, 'index']);

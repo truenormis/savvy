@@ -72,6 +72,14 @@ class AuthController extends Controller
             ]);
         }
 
+        // Check if 2FA is enabled
+        if ($user->hasTwoFactorEnabled()) {
+            return response()->json([
+                'requires_2fa' => true,
+                'two_factor_token' => $this->jwt->encodeTwoFactorToken($user),
+            ]);
+        }
+
         return response()->json([
             'user' => $this->userResponse($user),
             'token' => $this->jwt->encode($user),

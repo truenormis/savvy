@@ -29,6 +29,21 @@ class JwtService
         return JWT::encode($payload, $this->secret, $this->algorithm);
     }
 
+    /**
+     * Create a temporary token for 2FA verification (5 minutes TTL)
+     */
+    public function encodeTwoFactorToken(User $user): string
+    {
+        $payload = [
+            'sub' => $user->id,
+            'iat' => time(),
+            'exp' => time() + (5 * 60), // 5 minutes
+            '2fa' => true,
+        ];
+
+        return JWT::encode($payload, $this->secret, $this->algorithm);
+    }
+
     public function decode(string $token): ?object
     {
         try {
