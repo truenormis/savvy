@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap, Shield, Upload, LucideIcon } from 'lucide-react'
+import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap, Shield, Upload, Database, LucideIcon } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 import {
     Sidebar,
@@ -40,6 +40,7 @@ const settingsItems: MenuItem[] = [
     { to: '/settings/system', icon: Cog, label: 'System' },
     { to: '/settings/security', icon: Shield, label: 'Security' },
     { to: '/settings/import', icon: Upload, label: 'Import' },
+    { to: '/settings/backups', icon: Database, label: 'Backups' },
     { to: '/accounts', icon: CreditCard, label: 'Accounts' },
     { to: '/categories', icon: FolderTree, label: 'Categories' },
     { to: '/currencies', icon: Coins, label: 'Currencies' },

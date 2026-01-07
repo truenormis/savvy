@@ -26,11 +26,17 @@ DB_DATABASE=$DATA_DIR/database.sqlite
 SESSION_DRIVER=file
 CACHE_STORE=file
 QUEUE_CONNECTION=sync
+
+BACKUP_PATH=$DATA_DIR/backups
 EOF
 
     touch $DATA_DIR/database.sqlite
     chown www-data:www-data $DATA_DIR/database.sqlite
     chmod 664 $DATA_DIR/database.sqlite
+
+    mkdir -p $DATA_DIR/backups
+    chown www-data:www-data $DATA_DIR/backups
+    chmod 775 $DATA_DIR/backups
 
     php artisan migrate --force --seed
 
@@ -38,6 +44,7 @@ EOF
 fi
 
 [ -f $DATA_DIR/database.sqlite ] && chown www-data:www-data $DATA_DIR/database.sqlite && chmod 664 $DATA_DIR/database.sqlite
+[ ! -d $DATA_DIR/backups ] && mkdir -p $DATA_DIR/backups && chown www-data:www-data $DATA_DIR/backups && chmod 775 $DATA_DIR/backups
 
 php artisan migrate --force
 

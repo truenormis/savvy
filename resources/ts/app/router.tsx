@@ -46,6 +46,7 @@ const ReportsPage = lazy(() => import('@/pages/reports'))
 const SystemSettingsPage = lazy(() => import('@/pages/settings/system'))
 const SecuritySettingsPage = lazy(() => import('@/pages/settings/security'))
 const ImportSettingsPage = lazy(() => import('@/pages/settings/import'))
+const BackupsSettingsPage = lazy(() => import('@/pages/settings/backups'))
 const NotFoundPage = lazy(() => import('@/pages/not-found'))
 
 const withSuspense = (Component: React.LazyExoticComponent<() => JSX.Element>) => (
@@ -119,6 +120,7 @@ export const router = createBrowserRouter([
                     { path: 'settings/system', element: withSuspense(SystemSettingsPage) },
                     { path: 'settings/security', element: withSuspense(SecuritySettingsPage) },
                     { path: 'settings/import', element: withSuspense(ImportSettingsPage) },
+                    { path: 'settings/backups', element: withSuspense(BackupsSettingsPage) },
                 ],
             },
         ],

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AutomationRuleController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
@@ -114,6 +115,16 @@ Route::middleware('jwt')->group(function () {
         // Settings (admin + read-write can modify)
         Route::get('settings', [SettingsController::class, 'index']);
         Route::patch('settings', [SettingsController::class, 'update']);
+
+        // Backups
+        Route::prefix('backups')->group(function () {
+            Route::get('/', [BackupController::class, 'index']);
+            Route::post('/', [BackupController::class, 'store']);
+            Route::post('upload', [BackupController::class, 'upload']);
+            Route::get('{backup}/download', [BackupController::class, 'download']);
+            Route::post('{backup}/restore', [BackupController::class, 'restore']);
+            Route::delete('{backup}', [BackupController::class, 'destroy']);
+        });
 
         // Automation Rules
         Route::get('automation-rules/triggers', [AutomationRuleController::class, 'triggers']);
