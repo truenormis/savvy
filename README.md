@@ -35,8 +35,11 @@ Open `localhost:3000`.
 - **Debts** — track loans and borrowings with payment history
 - **Budgets** — set limits and track progress
 - **Categories & tags** — flexible organization
-- **Multi-user** — share with family or team
+- **Multi-user** — share with family or team, role-based access (admin/user)
 - **Rich analytics** — Sankey diagrams, heatmaps, net worth tracking, expense pace
+- **CSV import** — import transactions from bank exports with duplicate detection
+- **Backups** — create, restore and download database backups
+- **2FA** — two-factor authentication via TOTP (Google Authenticator, etc.)
 
 <p align="center">
   <img src="docs/images/report.png" alt="Savvy Reports" width="800">
