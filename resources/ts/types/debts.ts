@@ -44,6 +44,7 @@ export interface DebtSummary {
     net_debt: number
     debts_count: number
     currency: string
+    decimals: number
 }
 
 export interface DebtsResponse {

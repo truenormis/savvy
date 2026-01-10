@@ -46,7 +46,7 @@ export default function ReportsPage() {
 
             {/* Tab Navigation */}
             <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as ReportTab)} className="mb-6">
-                <TabsList>
+                <TabsList className="h-auto flex-wrap md:flex-nowrap md:h-9 md:w-fit">
                     {TABS.map(tab => (
                         <TabsTrigger key={tab.value} value={tab.value}>
                             {tab.label}

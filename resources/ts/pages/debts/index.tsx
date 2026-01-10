@@ -62,7 +62,7 @@ export default function DebtsPage() {
 
     const formatCurrency = (amount: number) => {
         if (!summary?.currency) return amount.toFixed(2)
-        return `${summary.currency} ${amount.toFixed(2)}`
+        return `${summary.currency} ${amount.toFixed(summary.decimals ?? 2)}`
     }
 
     return (

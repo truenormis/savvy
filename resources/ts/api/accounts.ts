@@ -7,6 +7,7 @@ export interface AccountsSummary {
     total_balance: number
     currency: string
     currency_code: string
+    decimals: number
     accounts_count: number
 }
 
@@ -25,12 +26,14 @@ export interface BalanceHistoryResponse {
     dates: string[]
     series: BalanceHistorySeries[]
     currency: string
+    decimals: number
 }
 
 export interface BalanceComparisonResponse {
     current: number
     previous: number | null
     currency: string
+    decimals: number
 }
 
 export const accountsApi = {

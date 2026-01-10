@@ -155,11 +155,11 @@ export function createTransactionColumns(
                             'font-mono font-semibold',
                             isIncoming ? 'text-green-600' : isTransfer ? 'text-blue-600' : isDebtPayment ? 'text-orange-600' : 'text-red-600'
                         )}>
-                            {isIncoming ? '+' : '-'}{amount.toFixed(2)} {account.currency?.symbol}
+                            {isIncoming ? '+' : '-'}{amount.toFixed(account.currency?.decimals ?? 2)} {account.currency?.symbol}
                         </div>
                         {isTransfer && toAmount && toAccount && (
                             <div className="text-xs text-muted-foreground font-mono">
-                                → +{toAmount.toFixed(2)} {toAccount.currency?.symbol}
+                                → +{toAmount.toFixed(toAccount.currency?.decimals ?? 2)} {toAccount.currency?.symbol}
                             </div>
                         )}
                     </div>

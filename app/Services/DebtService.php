@@ -185,10 +185,12 @@ class DebtService
                 'net_debt' => 0,
                 'debts_count' => 0,
                 'currency' => '$',
+                'decimals' => 2,
             ];
         }
 
         $debts = $this->getAll();
+        $decimals = $baseCurrency->decimals;
 
         $totalIOwe = 0;
         $totalOwedToMe = 0;
@@ -204,11 +206,12 @@ class DebtService
         }
 
         return [
-            'total_i_owe' => round($totalIOwe, 2),
-            'total_owed_to_me' => round($totalOwedToMe, 2),
-            'net_debt' => round($totalOwedToMe - $totalIOwe, 2),
+            'total_i_owe' => round($totalIOwe, $decimals),
+            'total_owed_to_me' => round($totalOwedToMe, $decimals),
+            'net_debt' => round($totalOwedToMe - $totalIOwe, $decimals),
             'debts_count' => $debts->count(),
             'currency' => $baseCurrency->symbol,
+            'decimals' => $decimals,
         ];
     }
 

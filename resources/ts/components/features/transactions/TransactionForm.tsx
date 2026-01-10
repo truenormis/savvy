@@ -210,6 +210,7 @@ export function TransactionForm({
             newBalance,
             insufficientFunds,
             currency: selectedAccount.currency?.symbol ?? '',
+            decimals: selectedAccount.currency?.decimals ?? 2,
         }
     }, [selectedAccount, amount, transactionType])
 
@@ -225,6 +226,7 @@ export function TransactionForm({
             currentBalance,
             newBalance,
             currency: selectedToAccount.currency?.symbol ?? '',
+            decimals: selectedToAccount.currency?.decimals ?? 2,
         }
     }, [selectedToAccount, toAmount, amount, transactionType])
 
@@ -320,7 +322,7 @@ export function TransactionForm({
                         <div className="flex-1">
                             <span className="text-muted-foreground">Balance: </span>
                             <span className="font-mono font-medium">
-                                {balancePreview.currentBalance.toFixed(2)} {balancePreview.currency}
+                                {balancePreview.currentBalance.toFixed(balancePreview.decimals)} {balancePreview.currency}
                             </span>
                         </div>
                         <span className="text-muted-foreground">→</span>
@@ -331,7 +333,7 @@ export function TransactionForm({
                                 balancePreview.insufficientFunds ? 'text-destructive' :
                                     balancePreview.newBalance > balancePreview.currentBalance ? 'text-green-600' : 'text-foreground'
                             )}>
-                                {balancePreview.newBalance.toFixed(2)} {balancePreview.currency}
+                                {balancePreview.newBalance.toFixed(balancePreview.decimals)} {balancePreview.currency}
                             </span>
                         </div>
                         {balancePreview.insufficientFunds && (
@@ -346,14 +348,14 @@ export function TransactionForm({
                         <div className="flex-1">
                             <span className="text-muted-foreground">To Balance: </span>
                             <span className="font-mono font-medium">
-                                {toBalancePreview.currentBalance.toFixed(2)} {toBalancePreview.currency}
+                                {toBalancePreview.currentBalance.toFixed(toBalancePreview.decimals)} {toBalancePreview.currency}
                             </span>
                         </div>
                         <span className="text-muted-foreground">→</span>
                         <div className="flex-1 text-right">
                             <span className="text-muted-foreground">After: </span>
                             <span className="font-mono font-medium text-green-600">
-                                {toBalancePreview.newBalance.toFixed(2)} {toBalancePreview.currency}
+                                {toBalancePreview.newBalance.toFixed(toBalancePreview.decimals)} {toBalancePreview.currency}
                             </span>
                         </div>
                     </div>
@@ -585,7 +587,7 @@ export function TransactionForm({
                                                         />
                                                     </td>
                                                     <td className="p-2 text-right font-mono text-muted-foreground">
-                                                        {total.toFixed(2)}
+                                                        {total.toFixed(selectedAccount?.currency?.decimals ?? 2)}
                                                     </td>
                                                     <td className="p-1">
                                                         <Button
@@ -608,7 +610,7 @@ export function TransactionForm({
                                                 Total:
                                             </td>
                                             <td className="p-2 text-right font-mono font-semibold">
-                                                {itemsTotal.toFixed(2)}
+                                                {itemsTotal.toFixed(selectedAccount?.currency?.decimals ?? 2)}
                                             </td>
                                             <td></td>
                                         </tr>

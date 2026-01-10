@@ -17,8 +17,31 @@ export function CashFlowChart({ filters }: CashFlowChartProps) {
 
     const showComparison = filters.compareWith !== 'none'
 
+    const { hasIncome, hasExpenses, noDataMessage } = useMemo(() => {
+        if (!data?.items?.length) {
+            return { hasIncome: false, hasExpenses: false, noDataMessage: 'No data for selected period' }
+        }
+
+        const totalIncome = data.items.reduce((sum, d) => sum + d.income, 0)
+        const totalExpenses = data.items.reduce((sum, d) => sum + d.expenses, 0)
+
+        const hasIncome = totalIncome > 0
+        const hasExpenses = totalExpenses > 0
+
+        let noDataMessage = null
+        if (!hasIncome && !hasExpenses) {
+            noDataMessage = 'No income or expenses for selected period'
+        } else if (!hasIncome) {
+            noDataMessage = 'No income data for selected period'
+        } else if (!hasExpenses) {
+            noDataMessage = 'No expenses data for selected period'
+        }
+
+        return { hasIncome, hasExpenses, noDataMessage }
+    }, [data])
+
     const chartOption = useMemo(() => {
-        if (!data?.items?.length) return null
+        if (!data?.items?.length || !hasIncome || !hasExpenses) return null
 
         const chartData = data.items
         const currency = data.currency
@@ -256,7 +279,7 @@ export function CashFlowChart({ filters }: CashFlowChartProps) {
             ],
             series,
         }
-    }, [data, showComparison, groupBy])
+    }, [data, showComparison, groupBy, hasIncome, hasExpenses])
 
     if (error) {
         return (
@@ -298,9 +321,9 @@ export function CashFlowChart({ filters }: CashFlowChartProps) {
             <CardContent>
                 {isLoading ? (
                     <Skeleton className="h-[400px]" />
-                ) : !chartOption ? (
+                ) : noDataMessage ? (
                     <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                        No data for selected period
+                        {noDataMessage}
                     </div>
                 ) : (
                     <ReactECharts

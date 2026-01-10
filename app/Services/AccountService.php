@@ -59,8 +59,10 @@ class AccountService
     {
         $baseCurrency = Currency::getBase();
         if (!$baseCurrency) {
-            return ['dates' => [], 'series' => [], 'currency' => '$'];
+            return ['dates' => [], 'series' => [], 'currency' => '$', 'decimals' => 2];
         }
+
+        $decimals = $baseCurrency->decimals;
 
         $accounts = Account::with('currency')
             ->where('is_active', true)
@@ -150,11 +152,11 @@ class AccountService
                     ? $balance
                     : $account->currency->convertTo($balance, $baseCurrency);
 
-                $seriesData[$account->id]['data'][] = round($balanceInBase, 2);
+                $seriesData[$account->id]['data'][] = round($balanceInBase, $decimals);
                 $totalInBase += $balanceInBase;
             }
 
-            $totalData[] = round($totalInBase, 2);
+            $totalData[] = round($totalInBase, $decimals);
         }
 
         // Build series array
@@ -173,6 +175,7 @@ class AccountService
             'dates' => $dates,
             'series' => $series,
             'currency' => $baseCurrency->symbol,
+            'decimals' => $decimals,
         ];
     }
 
@@ -253,12 +256,15 @@ class AccountService
 
         $netWorth = $totalRegularBalance + $debtsImpact;
 
+        $decimals = $baseCurrency->decimals;
+
         return [
-            'total_balance' => round($totalRegularBalance, 2),
-            'debts_impact' => round($debtsImpact, 2),
-            'net_worth' => round($netWorth, 2),
+            'total_balance' => round($totalRegularBalance, $decimals),
+            'debts_impact' => round($debtsImpact, $decimals),
+            'net_worth' => round($netWorth, $decimals),
             'currency' => $baseCurrency->symbol,
             'currency_code' => $baseCurrency->code,
+            'decimals' => $decimals,
             'accounts_count' => $regularAccounts->count(),
             'debts_count' => $debts->count(),
         ];
@@ -272,6 +278,7 @@ class AccountService
                 'current' => 0,
                 'previous' => null,
                 'currency' => '$',
+                'decimals' => 2,
             ];
         }
 
@@ -298,6 +305,7 @@ class AccountService
             'current' => $currentBalance,
             'previous' => $previousBalance,
             'currency' => $baseCurrency->symbol,
+            'decimals' => $baseCurrency->decimals,
         ];
     }
 

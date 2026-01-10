@@ -32,6 +32,7 @@ export function useCreateTransaction(redirectTo?: string) {
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['budgets'] })
             queryClient.invalidateQueries({ queryKey: ['categories'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
             toast.success('Transaction created')
             if (redirectTo) navigate(redirectTo)
         },
@@ -53,6 +54,7 @@ export function useUpdateTransaction(redirectTo?: string) {
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['budgets'] })
             queryClient.invalidateQueries({ queryKey: ['categories'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
             toast.success('Transaction updated')
             if (redirectTo) navigate(redirectTo)
         },
@@ -72,6 +74,7 @@ export function useDeleteTransaction() {
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['budgets'] })
             queryClient.invalidateQueries({ queryKey: ['categories'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
             toast.success('Transaction deleted')
         },
         onError: (error: Error) => {
@@ -90,6 +93,7 @@ export function useDuplicateTransaction() {
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['budgets'] })
             queryClient.invalidateQueries({ queryKey: ['categories'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
             toast.success('Transaction duplicated')
         },
         onError: (error: Error) => {

@@ -66,7 +66,7 @@ export function Header() {
                         <div className="flex items-center gap-2 text-sm">
                             <Wallet className="size-4 text-muted-foreground" />
                             <span className="font-mono font-medium">
-                                {(balance.total_balance ?? 0).toFixed(2)} {balance.currency}
+                                {(balance.total_balance ?? 0).toFixed(balance.decimals ?? 2)} {balance.currency}
                             </span>
                         </div>
                     )}

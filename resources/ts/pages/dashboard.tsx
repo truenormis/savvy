@@ -34,7 +34,7 @@ import { Progress } from '@/components/ui/progress'
 import { useTotalBalance, useTransactions, useBalanceHistory, useAccounts, useCategorySummary, useBudgets, useDebtsWithSummary, useBalanceComparison, useUpcomingRecurring } from '@/hooks'
 import { useOverviewMetrics } from '@/hooks/use-reports'
 import type { ReportFilters } from '@/pages/reports/types'
-import { cn } from '@/lib/utils'
+import { cn, formatAmount } from '@/lib/utils'
 import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { useTheme } from '@/hooks/use-theme'
@@ -194,6 +194,7 @@ export default function DashboardPage() {
 
     const totalBalance = balance?.total_balance ?? 0
     const currency = balance?.currency ?? '$'
+    const decimals = balance?.decimals ?? 2
     const monthIncome = Number(summary?.income) || 0
     const monthExpense = Number(summary?.expense) || 0
 
@@ -339,7 +340,7 @@ export default function DashboardPage() {
                 borderColor: isDark ? '#374151' : '#e5e7eb',
                 textStyle: { color: isDark ? '#f3f4f6' : '#1f2937' },
                 formatter: (params: { name: string; value: number; percent: number }) =>
-                    `${params.name}<br/>${params.value.toFixed(2)} ${categoryCurrency} (${params.percent.toFixed(1)}%)`,
+                    `${params.name}<br/>${params.value.toFixed(decimals)} ${categoryCurrency} (${params.percent.toFixed(1)}%)`,
             },
             legend: {
                 orient: 'vertical',
@@ -366,7 +367,7 @@ export default function DashboardPage() {
                 },
             ],
         }
-    }, [expensesByCategory, theme, currency])
+    }, [expensesByCategory, theme, currency, decimals])
 
     const handlePeriodChange = (value: PeriodPreset) => {
         setChartPeriod(value)
@@ -393,7 +394,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold font-mono">
-                            {totalBalance.toFixed(2)} {currency}
+                            {totalBalance.toFixed(decimals)} {currency}
                         </div>
                         {balanceChange !== null && (
                             <div className={cn(
@@ -420,7 +421,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold font-mono text-green-600">
-                            +{monthIncome.toFixed(2)} {currency}
+                            +{monthIncome.toFixed(decimals)} {currency}
                         </div>
                         {incomeChange !== null && (
                             <div className={cn(
@@ -447,7 +448,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold font-mono text-red-600">
-                            -{monthExpense.toFixed(2)} {currency}
+                            -{monthExpense.toFixed(decimals)} {currency}
                         </div>
                         {expenseChange !== null && (
                             <div className={cn(
@@ -551,7 +552,7 @@ export default function DashboardPage() {
                                         <div className="flex items-center gap-2">
                                             <div className="text-right">
                                                 <p className="text-sm font-mono font-medium">
-                                                    {(account.currentBalance ?? 0).toFixed(2)}
+                                                    {(account.currentBalance ?? 0).toFixed(account.currency?.decimals ?? 2)}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
                                                     {account.currency?.symbol ?? ''}
@@ -671,7 +672,7 @@ export default function DashboardPage() {
                                                 className={`text-sm font-mono font-medium ${getTransactionColor(transaction.type)}`}
                                             >
                                                 {getTransactionSign(transaction.type)}
-                                                {transaction.amount.toFixed(2)}
+                                                {transaction.amount.toFixed(transaction.account.currency?.decimals ?? 2)}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                                 {transaction.account.currency?.symbol ?? ''}
@@ -779,7 +780,7 @@ export default function DashboardPage() {
                                     <div>
                                         <p className="text-xs text-muted-foreground">I Owe</p>
                                         <p className="font-mono font-semibold text-red-600">
-                                            {debtSummary.total_i_owe.toFixed(2)} {debtSummary.currency}
+                                            {debtSummary.total_i_owe.toFixed(decimals)} {debtSummary.currency}
                                         </p>
                                     </div>
                                 </div>
@@ -790,7 +791,7 @@ export default function DashboardPage() {
                                     <div>
                                         <p className="text-xs text-muted-foreground">Owed to Me</p>
                                         <p className="font-mono font-semibold text-green-600">
-                                            {debtSummary.total_owed_to_me.toFixed(2)} {debtSummary.currency}
+                                            {debtSummary.total_owed_to_me.toFixed(decimals)} {debtSummary.currency}
                                         </p>
                                     </div>
                                 </div>
@@ -805,7 +806,7 @@ export default function DashboardPage() {
                                     <div>
                                         <p className="text-xs text-muted-foreground">Net Position</p>
                                         <p className={`font-mono font-semibold ${debtSummary.net_debt >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            {Math.abs(debtSummary.net_debt).toFixed(2)} {debtSummary.currency}
+                                            {Math.abs(debtSummary.net_debt).toFixed(decimals)} {debtSummary.currency}
                                         </p>
                                     </div>
                                 </div>
@@ -836,7 +837,7 @@ export default function DashboardPage() {
                                                     {debt.paymentProgress.toFixed(0)}% paid
                                                 </span>
                                                 <span className={debt.debtType === 'i_owe' ? 'text-red-600' : 'text-green-600'}>
-                                                    {debt.remainingDebt.toFixed(2)} {debt.currency?.symbol}
+                                                    {debt.remainingDebt.toFixed(debt.currency?.decimals ?? 2)} {debt.currency?.symbol}
                                                 </span>
                                             </div>
                                             {debt.counterparty && (
@@ -903,7 +904,7 @@ export default function DashboardPage() {
                                         recurring.type === 'expense' ? 'text-red-600' : ''
                                     }`}>
                                         {recurring.type === 'income' ? '+' : recurring.type === 'expense' ? '-' : ''}
-                                        {recurring.amount.toFixed(2)} {recurring.account.currency?.symbol}
+                                        {recurring.amount.toFixed(recurring.account.currency?.decimals ?? 2)} {recurring.account.currency?.symbol}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {new Date(recurring.nextRunDate).toLocaleDateString('en-US', {

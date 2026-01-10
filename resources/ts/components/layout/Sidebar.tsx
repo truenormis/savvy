@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap, Shield, Upload, Database, LucideIcon } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
@@ -17,6 +17,7 @@ import {
     SidebarMenuSubButton,
     SidebarFooter,
     SidebarRail,
+    useSidebar,
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { APP_VERSION } from '@/version'
@@ -51,6 +52,12 @@ const settingsItems: MenuItem[] = [
 export function AppSidebar() {
     const location = useLocation()
     const [settingsOpen, setSettingsOpen] = useState(false)
+    const { setOpenMobile } = useSidebar()
+
+    // Close mobile sidebar when navigating to a new page
+    useEffect(() => {
+        setOpenMobile(false)
+    }, [location.pathname, setOpenMobile])
 
     const isActive = (path: string) => {
         if (path === '/') return location.pathname === '/'

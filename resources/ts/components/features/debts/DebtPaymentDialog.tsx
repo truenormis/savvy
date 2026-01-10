@@ -132,7 +132,7 @@ export function DebtPaymentDialog({
                                                     <div className="flex items-center justify-between gap-4">
                                                         <span>{account.name}</span>
                                                         <span className="text-muted-foreground text-xs font-mono">
-                                                            {account.currency?.symbol}{account.currentBalance.toFixed(2)}
+                                                            {account.currency?.symbol}{account.currentBalance.toFixed(account.currency?.decimals ?? 2)}
                                                         </span>
                                                     </div>
                                                 </SelectItem>
