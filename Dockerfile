@@ -1,4 +1,6 @@
 FROM node:24-alpine AS frontend
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci

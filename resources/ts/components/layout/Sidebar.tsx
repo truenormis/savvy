@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap, Shield, Upload, Database, LucideIcon } from 'lucide-react'
+import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap, Shield, Upload, Database, LucideIcon, Github, ExternalLink } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 import {
     Sidebar,
@@ -20,6 +20,14 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { APP_VERSION } from '@/version'
 interface MenuItem {
     to: string
@@ -143,10 +151,34 @@ export function AppSidebar() {
             <SidebarFooter>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="sm" className="text-xs text-muted-foreground justify-between">
-                            <span>Savvy</span>
-                            <span className="font-mono">{APP_VERSION}</span>
-                        </SidebarMenuButton>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <SidebarMenuButton size="sm" className="text-xs text-muted-foreground justify-between">
+                                    <span>Savvy</span>
+                                    <span className="font-mono">{APP_VERSION}</span>
+                                </SidebarMenuButton>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="top" align="start" className="w-64">
+                                <DropdownMenuLabel>About Savvy</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <div className="px-2 py-2 text-sm text-muted-foreground">
+                                    <p>Self-hosted personal finance tracker. Track expenses, manage budgets, and take control of your money.</p>
+                                </div>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <a
+                                        href="https://github.com/truenormis/savvy"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="cursor-pointer"
+                                    >
+                                        <Github className="mr-2 size-4" />
+                                        GitHub Repository
+                                        <ExternalLink className="ml-auto size-3" />
+                                    </a>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>

@@ -9,11 +9,11 @@ import {
     InputOTPSeparator,
 } from '@/components/ui/input-otp'
 import { useEnableTwoFactor, useConfirmTwoFactor, useTheme } from '@/hooks'
-import { ShieldCheck, Copy, Loader2, ArrowLeft } from 'lucide-react'
+import { ShieldCheck, Copy, Loader2, ArrowLeft, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { QRCode } from 'react-qrcode-logo'
 
-type SetupStep = 'intro' | 'qr' | 'verify' | 'recovery'
+type SetupStep = 'intro' | 'qr' | 'verify' | 'recovery' | 'star'
 
 export default function Setup2FAPage() {
     const navigate = useNavigate()
@@ -34,14 +34,17 @@ export default function Setup2FAPage() {
     }, [navigate])
 
     const handleSkip = () => {
-        sessionStorage.removeItem('just_registered')
         toast.info('You can enable 2FA later in Settings > Security')
-        navigate('/')
+        setStep('star')
     }
 
     const handleComplete = () => {
+        toast.success('2FA enabled successfully!')
+        setStep('star')
+    }
+
+    const handleFinish = () => {
         sessionStorage.removeItem('just_registered')
-        toast.success('Account setup complete!')
         navigate('/')
     }
 
@@ -247,6 +250,46 @@ export default function Setup2FAPage() {
                             <Button onClick={handleComplete} className="w-full">
                                 Done
                             </Button>
+                        </CardContent>
+                    </>
+                )}
+
+                {step === 'star' && (
+                    <>
+                        <CardHeader className="text-center">
+                            <div className="flex justify-center mb-4">
+                                <div className="flex size-12 items-center justify-center rounded-xl bg-yellow-500 text-white">
+                                    <Star className="size-7" />
+                                </div>
+                            </div>
+                            <CardTitle className="text-2xl">Support Savvy</CardTitle>
+                            <CardDescription>
+                                If you enjoy using Savvy, please consider giving us a star on GitHub. It helps others discover the project!
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex flex-col gap-2">
+                                <Button
+                                    asChild
+                                    className="w-full"
+                                >
+                                    <a
+                                        href="https://github.com/truenormis/savvy"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        <Star className="mr-2 size-4" />
+                                        Star on GitHub
+                                    </a>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    onClick={handleFinish}
+                                    className="w-full"
+                                >
+                                    Skip
+                                </Button>
+                            </div>
                         </CardContent>
                     </>
                 )}

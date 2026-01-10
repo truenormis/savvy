@@ -1,7 +1,6 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "name": "savvy",
-    "version": "1.2.1-beta",
     "private": true,
     "type": "module",
     "scripts": {
