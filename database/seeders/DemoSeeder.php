@@ -184,9 +184,9 @@ class DemoSeeder extends Seeder
         for ($i = 0; $i < 6; $i++) {
             $monthDate = $startDate->copy()->addMonths($i);
 
-            // Salary - 1st of month (for work done previous month)
+            // Salary - 10th of month
             if ($salaryCategory) {
-                $salaryDate = $monthDate->copy()->day(1);
+                $salaryDate = $monthDate->copy()->day(10);
                 if ($salaryDate->lte($endDate) && $salaryDate->gte($startDate)) {
                     Transaction::create([
                         'type' => TransactionType::Income,
@@ -234,15 +234,15 @@ class DemoSeeder extends Seeder
             }
         }
 
-        // Current month salary (if we're past the 1st)
-        if ($salaryCategory && now()->day >= 1) {
+        // Current month salary (if we're past the 10th)
+        if ($salaryCategory && now()->day >= 10) {
             Transaction::create([
                 'type' => TransactionType::Income,
                 'account_id' => $accounts['bank']->id,
                 'category_id' => $salaryCategory->id,
                 'amount' => rand(4800, 5200),
                 'description' => 'Monthly salary',
-                'date' => now()->startOfMonth(),
+                'date' => now()->day(10),
             ]);
             $transactionCount++;
         }
@@ -500,9 +500,9 @@ class DemoSeeder extends Seeder
                     'amount' => 5000,
                     'frequency' => RecurringFrequency::Monthly,
                     'interval' => 1,
-                    'day_of_month' => 28,
+                    'day_of_month' => 10,
                     'start_date' => now()->startOfMonth(),
-                    'next_run_date' => now()->endOfMonth(),
+                    'next_run_date' => now()->day(10)->addMonthNoOverflow(),
                     'is_active' => true,
                 ]
             );

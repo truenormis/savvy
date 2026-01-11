@@ -343,16 +343,26 @@ export default function DashboardPage() {
                     `${params.name}<br/>${params.value.toFixed(decimals)} ${categoryCurrency} (${params.percent.toFixed(1)}%)`,
             },
             legend: {
-                orient: 'vertical',
-                right: 10,
-                top: 'center',
-                textStyle: { color: isDark ? '#9ca3af' : '#6b7280' },
+                orient: 'horizontal',
+                bottom: 0,
+                left: 'center',
+                textStyle: {
+                    color: isDark ? '#9ca3af' : '#6b7280',
+                    fontSize: 11,
+                },
+                icon: 'circle',
+                itemWidth: 8,
+                itemHeight: 8,
+                itemGap: 8,
+            },
+            grid: {
+                containLabel: true,
             },
             series: [
                 {
                     type: 'pie',
-                    radius: ['40%', '70%'],
-                    center: ['35%', '50%'],
+                    radius: ['35%', '60%'],
+                    center: ['50%', '40%'],
                     avoidLabelOverlap: false,
                     itemStyle: {
                         borderRadius: 4,
@@ -469,12 +479,12 @@ export default function DashboardPage() {
 
             <div className="grid gap-4 lg:grid-cols-3">
                 <Card className="lg:col-span-2">
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <CardTitle>Balance Dynamics</CardTitle>
                         <div className="flex items-center gap-2">
-                            <Calendar className="size-4 text-muted-foreground" />
+                            <Calendar className="size-4 text-muted-foreground hidden sm:block" />
                             <Select value={chartPeriod} onValueChange={handlePeriodChange}>
-                                <SelectTrigger className="w-[160px] h-8">
+                                <SelectTrigger className="w-full sm:w-[160px] h-8">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -489,19 +499,19 @@ export default function DashboardPage() {
                         </div>
                     </CardHeader>
                     {chartPeriod === 'custom' && (
-                        <div className="px-6 pb-2 flex items-center gap-2">
+                        <div className="px-6 pb-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                             <Input
                                 type="date"
                                 value={customStartDate}
                                 onChange={(e) => setCustomStartDate(e.target.value)}
-                                className="h-8 w-[140px]"
+                                className="h-8 w-full sm:w-[140px]"
                             />
-                            <span className="text-muted-foreground">—</span>
+                            <span className="text-muted-foreground text-center hidden sm:block">—</span>
                             <Input
                                 type="date"
                                 value={customEndDate}
                                 onChange={(e) => setCustomEndDate(e.target.value)}
-                                className="h-8 w-[140px]"
+                                className="h-8 w-full sm:w-[140px]"
                             />
                         </div>
                     )}
@@ -509,11 +519,12 @@ export default function DashboardPage() {
                         {historyData && historyData.series.length > 0 ? (
                             <ReactECharts
                                 option={balanceChartOption}
-                                style={{ height: '300px' }}
+                                style={{ height: '250px' }}
+                                className="sm:[&]:!h-[300px]"
                                 opts={{ renderer: 'svg' }}
                             />
                         ) : (
-                            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                            <div className="flex items-center justify-center h-[250px] sm:h-[300px] text-muted-foreground">
                                 No data for this period
                             </div>
                         )}
@@ -619,11 +630,12 @@ export default function DashboardPage() {
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Recent Transactions</CardTitle>
-                        <Button variant="ghost" size="sm" asChild>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2">
+                        <CardTitle className="truncate">Recent Transactions</CardTitle>
+                        <Button variant="ghost" size="sm" asChild className="shrink-0">
                             <Link to="/transactions">
-                                View all
+                                <span className="hidden sm:inline">View all</span>
+                                <span className="sm:hidden">All</span>
                                 <ArrowRight className="ml-1 size-4" />
                             </Link>
                         </Button>
@@ -634,11 +646,11 @@ export default function DashboardPage() {
                                 recentTransactions.data.map((transaction) => (
                                     <div
                                         key={transaction.id}
-                                        className="flex items-center justify-between"
+                                        className="flex items-center justify-between gap-3"
                                     >
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <div
-                                                className="flex size-9 items-center justify-center rounded-lg"
+                                                className="flex size-9 shrink-0 items-center justify-center rounded-lg"
                                                 style={{
                                                     backgroundColor: transaction.category?.color
                                                         ? `${transaction.category.color}20`
@@ -653,21 +665,20 @@ export default function DashboardPage() {
                                                     <CreditCard className="size-4" />
                                                 )}
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-medium">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-medium truncate">
                                                     {transaction.category?.name ||
                                                         transaction.description ||
                                                         (transaction.type === 'transfer'
                                                             ? 'Transfer'
                                                             : 'Transaction')}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {formatDate(transaction.date)} &middot;{' '}
-                                                    {transaction.account.name}
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                    {formatDate(transaction.date)} · {transaction.account.name}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-right shrink-0">
                                             <p
                                                 className={`text-sm font-mono font-medium ${getTransactionColor(transaction.type)}`}
                                             >
