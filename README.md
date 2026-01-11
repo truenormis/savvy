@@ -20,7 +20,7 @@
 ### 🎮 Try it now!
 
 <a href="https://demo.savvy.whiteforge.ai">
-  <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-demo.savvy.happeening.com-blueviolet?style=for-the-badge" alt="Demo">
+  <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-demo.savvy.whiteforge.ai-blueviolet?style=for-the-badge" alt="Demo">
 </a>
 
 🔐 `demo@demo.com` / `demo`
