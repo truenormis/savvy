@@ -19,7 +19,7 @@
 
 ### 🎮 Try it now!
 
-<a href="https://demo.savvy.happeening.com/">
+<a href="https://demo.savvy.whiteforge.ai">
   <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-demo.savvy.happeening.com-blueviolet?style=for-the-badge" alt="Demo">
 </a>
 
