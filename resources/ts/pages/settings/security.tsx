@@ -29,11 +29,13 @@ import { ShieldCheck, ShieldOff, Key, Copy, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { QRCode } from 'react-qrcode-logo'
 import { useTheme } from '@/hooks'
+import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
 
 type SetupStep = 'qr' | 'verify' | 'recovery'
 
 export default function SecuritySettingsPage() {
     const { theme } = useTheme()
+    const isReadOnly = useReadOnly()
     const { data: status, isLoading } = useTwoFactorStatus()
     const enableMutation = useEnableTwoFactor()
     const confirmMutation = useConfirmTwoFactor()
@@ -135,11 +137,12 @@ export default function SecuritySettingsPage() {
                                     <Button
                                         variant="destructive"
                                         onClick={() => setShowDisableDialog(true)}
+                                        disabled={isReadOnly}
                                     >
                                         Disable 2FA
                                     </Button>
                                 ) : (
-                                    <Button onClick={handleEnable} disabled={enableMutation.isPending}>
+                                    <Button onClick={handleEnable} disabled={enableMutation.isPending || isReadOnly}>
                                         {enableMutation.isPending ? 'Enabling...' : 'Enable 2FA'}
                                     </Button>
                                 )}
@@ -168,6 +171,7 @@ export default function SecuritySettingsPage() {
                                 <Button
                                     variant="outline"
                                     onClick={() => setShowRegenerateDialog(true)}
+                                    disabled={isReadOnly}
                                 >
                                     <RefreshCw className="h-4 w-4 mr-2" />
                                     Regenerate

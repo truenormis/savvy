@@ -34,6 +34,7 @@ import { Download, RotateCcw, Trash2, Plus, Upload, Loader2 } from 'lucide-react
 import { useBackups, useCreateBackup, useUploadBackup, useRestoreBackup, useDeleteBackup } from '@/hooks/use-backups'
 import { backupsApi } from '@/api/backups'
 import { Backup } from '@/types/backup'
+import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B'
@@ -48,6 +49,7 @@ function formatDate(dateString: string): string {
 }
 
 export default function BackupsPage() {
+    const isReadOnly = useReadOnly()
     const { data: backups, isLoading } = useBackups()
     const createBackup = useCreateBackup()
     const uploadBackup = useUploadBackup()
@@ -127,11 +129,11 @@ export default function BackupsPage() {
             />
 
             <div className="flex gap-2 mb-6">
-                <Button onClick={() => setCreateDialogOpen(true)}>
+                <Button onClick={() => setCreateDialogOpen(true)} disabled={isReadOnly}>
                     <Plus className="size-4 mr-2" />
                     Create Backup
                 </Button>
-                <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
+                <Button variant="outline" onClick={() => setUploadDialogOpen(true)} disabled={isReadOnly}>
                     <Upload className="size-4 mr-2" />
                     Upload Backup
                 </Button>
@@ -189,6 +191,7 @@ export default function BackupsPage() {
                                                     setRestoreDialogOpen(true)
                                                 }}
                                                 title="Restore"
+                                                disabled={isReadOnly}
                                             >
                                                 <RotateCcw className="size-4" />
                                             </Button>
@@ -200,6 +203,7 @@ export default function BackupsPage() {
                                                     setDeleteDialogOpen(true)
                                                 }}
                                                 title="Delete"
+                                                disabled={isReadOnly}
                                             >
                                                 <Trash2 className="size-4" />
                                             </Button>
