@@ -15,8 +15,22 @@
 <img src="https://img.shields.io/badge/LICENSE-MIT-green?style=for-the-badge" alt="License">
 </p>
 
+<div align="center">
+
+### 🎮 Try it now!
+
+<a href="https://demo.savvy.happeening.com/">
+  <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-demo.savvy.happeening.com-blueviolet?style=for-the-badge" alt="Demo">
+</a>
+
+🔐 `demo@demo.com` / `demo`
+
+</div>
+
+---
+
 <p align="center">
-  <img src="docs/images/screenshot.png" alt="Savvy Screenshot" width="800">
+  <img src="docs/images/screenshot.png" alt="Savvy Screenshot" width="1920">
 </p>
 
 ## ⚡ Quick Start
@@ -24,7 +38,7 @@
 docker run -d -p 3000:80 -v savvy-data:/data truenormis/savvy:latest
 ```
 
-Open `localhost:3000`.
+Open `localhost:3000` and create your account.
 
 ## ✨ Features
 
@@ -42,17 +56,153 @@ Open `localhost:3000`.
 - **2FA** — two-factor authentication via TOTP (Google Authenticator, etc.)
 
 <p align="center">
-  <img src="docs/images/report.png" alt="Savvy Reports" width="800">
+  <img src="docs/images/report.png" alt="Savvy Reports" width="1920">
 </p>
+
+## 📱 Mobile-Friendly
+
+Fully responsive design built with ShadCN/UI — track expenses from your phone right after purchase.
+
+<p align="center">
+  <img src="docs/images/mobile.png" alt="Mobile Dashboard" width="1920">
+  &nbsp;&nbsp;&nbsp;
+</p>
+
+## 🚀 Deployment
+
+### Docker Compose (Recommended)
+```yaml
+version: "3.8"
+
+services:
+  savvy:
+    image: truenormis/savvy:latest
+    container_name: savvy
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - savvy-data:/data
+    environment:
+      - APP_URL=https://savvy.yourdomain.com
+      - TZ=Europe/Kyiv
+
+volumes:
+  savvy-data:
+```
+
+### Environment Variables
+
+| Variable  | Description                 | Default            |
+|-----------|-----------------------------|--------------------|
+| `APP_URL` | Public URL of your instance | `http://localhost` |
+| `TZ`      | Timezone                    | `UTC`              |
+### With Traefik (HTTPS)
+```yaml
+version: "3.8"
+
+services:
+  savvy:
+    image: truenormis/savvy:latest
+    container_name: savvy
+    restart: unless-stopped
+    volumes:
+      - savvy-data:/data
+    environment:
+      - APP_URL=https://savvy.yourdomain.com
+      - TZ=Europe/Kyiv
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.savvy.rule=Host(`savvy.yourdomain.com`)"
+      - "traefik.http.routers.savvy.entrypoints=websecure"
+      - "traefik.http.routers.savvy.tls.certresolver=letsencrypt"
+      - "traefik.http.services.savvy.loadbalancer.server.port=80"
+    networks:
+      - traefik
+
+volumes:
+  savvy-data:
+
+networks:
+  traefik:
+    external: true
+```
+
+### With Nginx Proxy Manager
+
+1. Run Savvy on internal port:
+```yaml
+version: "3.8"
+
+services:
+  savvy:
+    image: truenormis/savvy:latest
+    container_name: savvy
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - savvy-data:/data
+    environment:
+      - APP_URL=https://savvy.yourdomain.com
+    networks:
+      - npm-network
+
+volumes:
+  savvy-data:
+
+networks:
+  npm-network:
+    external: true
+```
+
+2. In Nginx Proxy Manager, create proxy host pointing to `savvy:80`
+
+### Kubernetes
+
+Savvy works out of the box on Kubernetes. Deploy as a single-pod Deployment with a PersistentVolumeClaim mounted at `/data`. Helm chart coming soon.
+
+## 🔄 Updating
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Your data is safe in the `/data` volume.
+
+## 💾 Backups
+
+Backups can be managed directly from the UI (Settings → Backups).
+
+Manual backup:
+```bash
+docker cp savvy:/data/database.sqlite ./backup-$(date +%Y%m%d).sqlite
+```
+
+Restore:
+```bash
+docker cp ./backup.sqlite savvy:/data/database.sqlite
+docker restart savvy
+```
 
 ## 🔒 Privacy
 
-Your data stays with you. SQLite stored in `/data`.
+Your data stays with you. SQLite database stored in `/data` volume — no external services required.
 
 ## 🛠 Stack
 
-Laravel • SQLite • Docker
+Laravel • SQLite • Docker • ShadCN/UI • Tailwind CSS
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue first to discuss what you would like to change.
 
 ## 📄 License
 
-MIT
+[MIT](LICENSE)
+
+---
+
+<p align="center">
+  Made with ❤️ for people who want control over their finances
+</p>
