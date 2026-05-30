@@ -47,7 +47,7 @@ class DebtPaymentRequest extends FormRequest
     {
         $debt = $this->route('debt');
 
-        if (!$debt || !$debt->isDebt()) {
+        if (! $debt || ! $debt->isDebt()) {
             return;
         }
 
@@ -67,7 +67,7 @@ class DebtPaymentRequest extends FormRequest
     {
         $debt = $this->route('debt');
 
-        if (!$debt || !$debt->isDebt()) {
+        if (! $debt || ! $debt->isDebt()) {
             return;
         }
 

@@ -21,8 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->preventRequestsDuringMaintenance(except: [
             'livez',
         ]);
+        $middleware->encryptCookies(except: [
+            'svy_session',
+            '__Host-svy_session',
+            'svy_csrf',
+        ]);
         $middleware->alias([
-            'jwt' => \App\Http\Middleware\JwtMiddleware::class,
+            'session' => \App\Http\Middleware\AuthenticateSession::class,
+            'csrf' => \App\Http\Middleware\VerifyCsrfToken::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'write' => \App\Http\Middleware\WriteAccessMiddleware::class,
         ]);

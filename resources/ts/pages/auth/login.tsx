@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,6 +23,7 @@ import {
 import { Loader2, ArrowLeft, Key } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { Logo } from '@/components/shared/Logo'
+import { SsoButtons } from '@/components/features/sso'
 import { authApi } from '@/api'
 import { toast } from 'sonner'
 
@@ -35,10 +36,13 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
     const navigate = useNavigate()
+    const location = useLocation()
+    const [searchParams] = useSearchParams()
     const login = useAuthStore((state) => state.login)
     const loginWith2FA = useAuthStore((state) => state.loginWith2FA)
     const [isLoading, setIsLoading] = useState(false)
     const [checkingStatus, setCheckingStatus] = useState(true)
+    const [passwordLoginEnabled, setPasswordLoginEnabled] = useState(true)
     const [twoFactorToken, setTwoFactorToken] = useState<string | null>(null)
     const [otpValue, setOtpValue] = useState('')
     const [useRecoveryCode, setUseRecoveryCode] = useState(false)
@@ -49,8 +53,25 @@ export default function LoginPage() {
             if (status.needs_registration) {
                 navigate('/setup', { replace: true })
             }
+            setPasswordLoginEnabled(status.password_login_enabled)
         }).finally(() => setCheckingStatus(false))
     }, [navigate])
+
+    // Resume the 2FA step when arriving from the SSO callback.
+    useEffect(() => {
+        const incoming = (location.state as { twoFactorToken?: string } | null)?.twoFactorToken
+        if (incoming) {
+            setTwoFactorToken(incoming)
+            navigate(location.pathname, { replace: true, state: null })
+        }
+    }, [location.state, location.pathname, navigate])
+
+    // Surface SSO errors bounced back to the login screen.
+    useEffect(() => {
+        if (searchParams.get('sso_error')) {
+            toast.error('Single sign-on failed. Please try again.')
+        }
+    }, [searchParams])
 
     const form = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
@@ -220,7 +241,9 @@ export default function LoginPage() {
                         Sign in to your account to continue
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                    <SsoButtons showDivider={passwordLoginEnabled} />
+                    {passwordLoginEnabled && (
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                             <FormField
@@ -267,6 +290,7 @@ export default function LoginPage() {
                             </Button>
                         </form>
                     </Form>
+                    )}
                 </CardContent>
             </Card>
         </div>

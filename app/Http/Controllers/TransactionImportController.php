@@ -27,7 +27,7 @@ class TransactionImportController extends Controller
             ]);
         } catch (\Throwable $e) {
             return response()->json([
-                'message' => 'Failed to parse CSV file: ' . $e->getMessage(),
+                'message' => 'Failed to parse CSV file: '.$e->getMessage(),
             ], 422);
         }
     }
@@ -53,7 +53,7 @@ class TransactionImportController extends Controller
             ], 422);
         } catch (\Throwable $e) {
             return response()->json([
-                'message' => 'Failed to preview import: ' . $e->getMessage(),
+                'message' => 'Failed to preview import: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -79,7 +79,7 @@ class TransactionImportController extends Controller
             ], 422);
         } catch (\Throwable $e) {
             return response()->json([
-                'message' => 'Failed to execute import: ' . $e->getMessage(),
+                'message' => 'Failed to execute import: '.$e->getMessage(),
             ], 500);
         }
     }

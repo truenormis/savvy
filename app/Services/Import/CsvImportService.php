@@ -9,7 +9,6 @@ use App\Models\Currency;
 use App\Models\Tag;
 use App\Services\TransactionService;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 
 class CsvImportService
 {
@@ -49,7 +48,7 @@ class CsvImportService
     {
         $cached = $this->csvParser->getFromCache($importId);
 
-        if (!$cached) {
+        if (! $cached) {
             throw new \RuntimeException('Import session expired. Please upload the file again.');
         }
 
@@ -68,7 +67,7 @@ class CsvImportService
 
         // Get existing entities for matching
         $existingCurrencies = Currency::pluck('id', 'code')->toArray();
-        $existingTags = Tag::pluck('id', 'name')->map(fn($id, $name) => $id)->toArray();
+        $existingTags = Tag::pluck('id', 'name')->map(fn ($id, $name) => $id)->toArray();
         $existingTagsLower = array_change_key_case($existingTags, CASE_LOWER);
         $existingCategories = Category::pluck('id', 'name')->toArray();
         $existingCategoriesLower = array_change_key_case($existingCategories, CASE_LOWER);
@@ -91,6 +90,7 @@ class CsvImportService
                     'warnings' => [],
                     'error' => $result['error'],
                 ];
+
                 continue;
             }
 
@@ -116,6 +116,7 @@ class CsvImportService
                     'warnings' => [],
                     'error' => null,
                 ];
+
                 continue;
             }
 
@@ -129,8 +130,8 @@ class CsvImportService
             $warnings = [];
 
             // Check if currency needs to be created
-            if ($result['currency'] && !isset($existingCurrencies[$result['currency']])) {
-                if (!in_array($result['currency'], $currenciesToCreate)) {
+            if ($result['currency'] && ! isset($existingCurrencies[$result['currency']])) {
+                if (! in_array($result['currency'], $currenciesToCreate)) {
                     $currenciesToCreate[] = $result['currency'];
                 }
                 $warnings[] = "Currency '{$result['currency']}' will be created";
@@ -139,7 +140,7 @@ class CsvImportService
             // Check if tags need to be created
             foreach ($result['tags'] as $tag) {
                 $tagLower = strtolower($tag);
-                if (!isset($existingTagsLower[$tagLower]) && !in_array($tag, $tagsToCreate)) {
+                if (! isset($existingTagsLower[$tagLower]) && ! in_array($tag, $tagsToCreate)) {
                     $tagsToCreate[] = $tag;
                     $warnings[] = "Tag '{$tag}' will be created";
                 }
@@ -148,7 +149,7 @@ class CsvImportService
             // Check if category needs to be created
             if ($result['category']) {
                 $categoryLower = strtolower($result['category']);
-                if (!isset($existingCategoriesLower[$categoryLower]) && !in_array($result['category'], $categoriesToCreate)) {
+                if (! isset($existingCategoriesLower[$categoryLower]) && ! in_array($result['category'], $categoriesToCreate)) {
                     $categoriesToCreate[] = $result['category'];
                     $warnings[] = "Category '{$result['category']}' will be created";
                 }
@@ -190,7 +191,7 @@ class CsvImportService
     {
         $cached = $this->csvParser->getFromCache($importId);
 
-        if (!$cached) {
+        if (! $cached) {
             throw new \RuntimeException('Import session expired. Please upload the file again.');
         }
 
@@ -211,14 +212,15 @@ class CsvImportService
         $categoryMap = $this->ensureCategoriesExist($rows, $mapping, $options);
 
         // Track which entities were actually created
-        $createdTags = array_keys(array_filter($tagMap, fn($data) => $data['created'] ?? false));
-        $createdCategories = array_keys(array_filter($categoryMap, fn($data) => $data['created'] ?? false));
+        $createdTags = array_keys(array_filter($tagMap, fn ($data) => $data['created'] ?? false));
+        $createdCategories = array_keys(array_filter($categoryMap, fn ($data) => $data['created'] ?? false));
 
         foreach ($rows as $index => $row) {
             $result = $this->processRow($row, $mapping, $options, $index + 1);
 
             if ($result['error']) {
                 $errors[] = ['row' => $index + 1, 'message' => $result['error']];
+
                 continue;
             }
 
@@ -231,6 +233,7 @@ class CsvImportService
 
             if ($duplicateId !== null) {
                 $skippedDuplicates++;
+
                 continue;
             }
 
@@ -268,7 +271,7 @@ class CsvImportService
                     date: $result['date'],
                     categoryId: $categoryId,
                     description: $result['description'],
-                    tagIds: !empty($tagIds) ? $tagIds : null,
+                    tagIds: ! empty($tagIds) ? $tagIds : null,
                 );
 
                 \Log::info('Creating transaction', [
@@ -328,12 +331,14 @@ class CsvImportService
             $dateValue = $row[$mapping['date']];
             $result['date'] = $this->formatDetector->parseDate($dateValue, $options['date_format']);
 
-            if (!$result['date']) {
+            if (! $result['date']) {
                 $result['error'] = "Invalid date format: '{$dateValue}'";
+
                 return $result;
             }
         } else {
             $result['error'] = 'Date column not mapped or empty';
+
             return $result;
         }
 
@@ -344,11 +349,12 @@ class CsvImportService
 
             if ($result['amount'] === null) {
                 $result['error'] = "Invalid amount format: '{$amountValue}'";
+
                 return $result;
             }
 
             // Determine type based on amount sign if not explicitly mapped
-            if (!isset($mapping['type'])) {
+            if (! isset($mapping['type'])) {
                 if ($result['amount'] < 0) {
                     $result['type'] = 'expense';
                 } elseif ($result['amount'] > 0) {
@@ -359,6 +365,7 @@ class CsvImportService
             }
         } else {
             $result['error'] = 'Amount column not mapped or empty';
+
             return $result;
         }
 
@@ -406,9 +413,9 @@ class CsvImportService
      */
     private function ensureTagsExist(array $rows, array $mapping, array $options): array
     {
-        if (!isset($mapping['tags']) || !($options['create_missing_tags'] ?? true)) {
+        if (! isset($mapping['tags']) || ! ($options['create_missing_tags'] ?? true)) {
             return Tag::pluck('id', 'name')
-                ->mapWithKeys(fn($id, $name) => [strtolower($name) => ['id' => $id, 'created' => false]])
+                ->mapWithKeys(fn ($id, $name) => [strtolower($name) => ['id' => $id, 'created' => false]])
                 ->toArray();
         }
 
@@ -444,7 +451,7 @@ class CsvImportService
         }
 
         foreach ($allTags as $lowerName => $originalName) {
-            if (!isset($tagMap[$lowerName])) {
+            if (! isset($tagMap[$lowerName])) {
                 $tag = Tag::create(['name' => $originalName]);
                 $tagMap[$lowerName] = ['id' => $tag->id, 'created' => true];
             }
@@ -458,9 +465,9 @@ class CsvImportService
      */
     private function ensureCategoriesExist(array $rows, array $mapping, array $options): array
     {
-        if (!isset($mapping['category']) || !($options['create_missing_categories'] ?? true)) {
+        if (! isset($mapping['category']) || ! ($options['create_missing_categories'] ?? true)) {
             return Category::pluck('id', 'name')
-                ->mapWithKeys(fn($id, $name) => [strtolower($name) => ['id' => $id, 'created' => false]])
+                ->mapWithKeys(fn ($id, $name) => [strtolower($name) => ['id' => $id, 'created' => false]])
                 ->toArray();
         }
 
@@ -481,7 +488,7 @@ class CsvImportService
                             $options['amount_format']
                         );
 
-                        if ($amount !== null && !isset($categoryTypes[$lowerCategory])) {
+                        if ($amount !== null && ! isset($categoryTypes[$lowerCategory])) {
                             $categoryTypes[$lowerCategory] = $amount < 0 ? 'expense' : 'income';
                         }
                     }
@@ -504,7 +511,7 @@ class CsvImportService
         }
 
         foreach ($allCategories as $lowerName => $originalName) {
-            if (!isset($categoryMap[$lowerName])) {
+            if (! isset($categoryMap[$lowerName])) {
                 $type = $categoryTypes[$lowerName] ?? ($options['default_type'] ?? 'expense');
 
                 $category = Category::create([

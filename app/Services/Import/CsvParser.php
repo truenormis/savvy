@@ -162,7 +162,7 @@ class CsvParser
         $headers = [];
 
         for ($i = 0; $i < $count; $i++) {
-            $headers[] = 'Column ' . ($i + 1);
+            $headers[] = 'Column '.($i + 1);
         }
 
         return $headers;

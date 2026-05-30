@@ -18,7 +18,7 @@ class FormatDetector
      */
     public function detectDateFormat(array $samples): string
     {
-        $samples = array_filter($samples, fn($s) => !empty(trim($s)));
+        $samples = array_filter($samples, fn ($s) => ! empty(trim($s)));
 
         if (empty($samples)) {
             return 'ISO';
@@ -61,7 +61,7 @@ class FormatDetector
      */
     public function detectAmountFormat(array $samples): string
     {
-        $samples = array_filter($samples, fn($s) => !empty(trim($s)));
+        $samples = array_filter($samples, fn ($s) => ! empty(trim($s)));
 
         if (empty($samples)) {
             return 'US';
@@ -134,7 +134,7 @@ class FormatDetector
             $value = str_replace(',', '', $value);
         }
 
-        if (!is_numeric($value)) {
+        if (! is_numeric($value)) {
             return null;
         }
 
@@ -194,7 +194,7 @@ class FormatDetector
             $cellIsNumeric = is_numeric(preg_replace('/[^0-9.\-,]/', '', $cell));
             $dataCellIsNumeric = is_numeric(preg_replace('/[^0-9.\-,]/', '', $dataCell));
 
-            if (!$cellIsNumeric && $dataCellIsNumeric) {
+            if (! $cellIsNumeric && $dataCellIsNumeric) {
                 $headerScore++;
             }
 
@@ -233,7 +233,7 @@ class FormatDetector
             $normalizedHeader = strtolower(trim($header));
 
             foreach ($patterns as $field => $fieldPatterns) {
-                if (!isset($mapping[$field])) {
+                if (! isset($mapping[$field])) {
                     foreach ($fieldPatterns as $pattern) {
                         if (str_contains($normalizedHeader, $pattern)) {
                             $mapping[$field] = $index;
@@ -268,7 +268,7 @@ class FormatDetector
             }
 
             // Check if count is consistent across lines
-            if (!empty($counts)) {
+            if (! empty($counts)) {
                 $uniqueCounts = array_unique($counts);
                 if (count($uniqueCounts) === 1 && $counts[0] > 0) {
                     $scores[$delimiter] = $counts[0];
@@ -281,6 +281,7 @@ class FormatDetector
         }
 
         arsort($scores);
+
         return array_key_first($scores);
     }
 }

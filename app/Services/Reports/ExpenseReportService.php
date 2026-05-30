@@ -93,7 +93,7 @@ class ExpenseReportService
             ];
         }
 
-        usort($categories, fn($a, $b) => $b['current'] <=> $a['current']);
+        usort($categories, fn ($a, $b) => $b['current'] <=> $a['current']);
 
         return [
             'categories' => $categories,

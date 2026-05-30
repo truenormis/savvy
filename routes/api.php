@@ -9,7 +9,9 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\DebtController;
+use App\Http\Controllers\IdentityProviderController;
 use App\Http\Controllers\RecurringTransactionController;
+use App\Http\Controllers\SsoController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TagController;
@@ -20,17 +22,27 @@ use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('auth/status', [AuthController::class, 'status']);
+Route::get('auth/me', [AuthController::class, 'me']);
 Route::post('auth/register', [AuthController::class, 'register']);
 Route::post('auth/login', [AuthController::class, 'login']);
 
 // 2FA verification (public - used during login flow)
 Route::post('auth/2fa/verify', [TwoFactorController::class, 'verify']);
 
+// SSO (public, browser-driven redirect flow)
+Route::prefix('auth/sso')->middleware('throttle:30,1')->group(function () {
+    Route::get('providers', [SsoController::class, 'providers'])->name('sso.providers');
+    Route::post('exchange', [SsoController::class, 'exchange'])->name('sso.exchange');
+    Route::get('{slug}/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
+    Route::get('{slug}/callback', [SsoController::class, 'callback'])->name('sso.callback');
+    Route::post('{slug}/acs', [SsoController::class, 'acs'])->name('sso.acs');
+    Route::get('{slug}/metadata', [SsoController::class, 'metadata'])->name('sso.metadata');
+});
+
 // Protected routes
-Route::middleware('jwt')->group(function () {
+Route::middleware(['session', 'csrf'])->group(function () {
     // Auth routes (available to all authenticated users)
-    Route::get('auth/me', [AuthController::class, 'me']);
-    Route::post('auth/refresh', [AuthController::class, 'refresh']);
+    Route::post('auth/logout', [AuthController::class, 'logout']);
 
     // 2FA status (available to all authenticated users)
     Route::get('auth/2fa/status', [TwoFactorController::class, 'status']);
@@ -52,6 +64,11 @@ Route::middleware('jwt')->group(function () {
         Route::put('users/{user}', [UserController::class, 'update']);
         Route::patch('users/{user}', [UserController::class, 'update']);
         Route::delete('users/{user}', [UserController::class, 'destroy']);
+
+        // SSO identity provider administration
+        Route::get('auth/sso/presets', [IdentityProviderController::class, 'presets']);
+        Route::post('identity-providers/{identity_provider}/test', [IdentityProviderController::class, 'test']);
+        Route::apiResource('identity-providers', IdentityProviderController::class);
     });
 
     // Resources with write access control

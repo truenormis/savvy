@@ -7,12 +7,10 @@ use App\Models\AutomationRule;
 use App\Models\AutomationRuleLog;
 use App\Models\Transaction;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AutomationService
 {
-
     public function process(TriggerType $trigger, Model $entity): array
     {
         $rules = AutomationRule::query()
@@ -66,7 +64,7 @@ class AutomationService
                 return true;
             }
 
-            if ($match === 'all' && !$result) {
+            if ($match === 'all' && ! $result) {
                 return false;
             }
         }
@@ -86,7 +84,7 @@ class AutomationService
             'equals' => $entityValue == $value,
             'not_equals' => $entityValue != $value,
             'in' => is_array($value) && in_array($entityValue, $value),
-            'not_in' => is_array($value) && !in_array($entityValue, $value),
+            'not_in' => is_array($value) && ! in_array($entityValue, $value),
             'gt' => is_numeric($entityValue) && $entityValue > $value,
             'gte' => is_numeric($entityValue) && $entityValue >= $value,
             'lt' => is_numeric($entityValue) && $entityValue < $value,
@@ -94,10 +92,10 @@ class AutomationService
             'between' => is_array($value) && count($value) === 2
                 && $entityValue >= $value[0] && $entityValue <= $value[1],
             'contains' => is_string($entityValue) && str_contains(strtolower($entityValue), strtolower($value)),
-            'not_contains' => is_string($entityValue) && !str_contains(strtolower($entityValue), strtolower($value)),
+            'not_contains' => is_string($entityValue) && ! str_contains(strtolower($entityValue), strtolower($value)),
             'starts_with' => is_string($entityValue) && str_starts_with(strtolower($entityValue), strtolower($value)),
             'ends_with' => is_string($entityValue) && str_ends_with(strtolower($entityValue), strtolower($value)),
-            'matches' => is_string($entityValue) && preg_match('/' . $value . '/i', $entityValue),
+            'matches' => is_string($entityValue) && preg_match('/'.$value.'/i', $entityValue),
             'is_null' => $entityValue === null,
             'is_not_null' => $entityValue !== null,
             'has_any' => $this->hasAnyTag($entity, $value),
@@ -133,18 +131,18 @@ class AutomationService
 
     private function hasAnyTag(Model $entity, mixed $tagIds): bool
     {
-        if (!method_exists($entity, 'tags') || !is_array($tagIds)) {
+        if (! method_exists($entity, 'tags') || ! is_array($tagIds)) {
             return false;
         }
 
         $entityTagIds = $entity->tags->pluck('id')->toArray();
 
-        return !empty(array_intersect($entityTagIds, $tagIds));
+        return ! empty(array_intersect($entityTagIds, $tagIds));
     }
 
     private function hasAllTags(Model $entity, mixed $tagIds): bool
     {
-        if (!method_exists($entity, 'tags') || !is_array($tagIds)) {
+        if (! method_exists($entity, 'tags') || ! is_array($tagIds)) {
             return false;
         }
 
@@ -155,7 +153,7 @@ class AutomationService
 
     private function hasNoTags(Model $entity, mixed $tagIds): bool
     {
-        if (!method_exists($entity, 'tags') || !is_array($tagIds)) {
+        if (! method_exists($entity, 'tags') || ! is_array($tagIds)) {
             return true;
         }
 
@@ -196,7 +194,7 @@ class AutomationService
 
     private function actionSetCategory(array $action, Model $entity): bool
     {
-        if (!$entity instanceof Transaction) {
+        if (! $entity instanceof Transaction) {
             return false;
         }
 
@@ -213,7 +211,7 @@ class AutomationService
 
     private function actionAddTags(array $action, Model $entity): bool
     {
-        if (!method_exists($entity, 'tags')) {
+        if (! method_exists($entity, 'tags')) {
             return false;
         }
 
@@ -232,7 +230,7 @@ class AutomationService
 
     private function actionRemoveTags(array $action, Model $entity): bool
     {
-        if (!method_exists($entity, 'tags')) {
+        if (! method_exists($entity, 'tags')) {
             return false;
         }
 
@@ -265,7 +263,7 @@ class AutomationService
 
     private function actionCreateTransfer(array $action, Model $entity): ?int
     {
-        if (!$entity instanceof Transaction) {
+        if (! $entity instanceof Transaction) {
             return null;
         }
 
@@ -274,7 +272,7 @@ class AutomationService
         $amountFormula = $action['amount_formula'] ?? $action['amount'] ?? null;
         $description = $action['description'] ?? 'Auto-transfer by automation rule';
 
-        if (!$fromAccountId || !$toAccountId || !$amountFormula) {
+        if (! $fromAccountId || ! $toAccountId || ! $amountFormula) {
             return null;
         }
 
@@ -298,7 +296,7 @@ class AutomationService
 
     private function resolveValue(mixed $value, Model $entity): mixed
     {
-        if (!is_string($value)) {
+        if (! is_string($value)) {
             return $value;
         }
 
@@ -321,7 +319,7 @@ class AutomationService
             return (float) $formula;
         }
 
-        if (!is_string($formula)) {
+        if (! is_string($formula)) {
             return 0;
         }
 

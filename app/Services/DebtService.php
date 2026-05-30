@@ -20,7 +20,7 @@ class DebtService
         $query = Account::with('currency')
             ->where('type', 'debt');
 
-        if (!$includeCompleted) {
+        if (! $includeCompleted) {
             $query->where('is_paid_off', false);
         }
 
@@ -69,7 +69,7 @@ class DebtService
 
     public function update(Account $debt, DebtData $data): Account
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             throw new DomainException('Account is not a debt.');
         }
 
@@ -93,7 +93,7 @@ class DebtService
      */
     public function makePayment(Account $debt, Account $sourceAccount, DebtPaymentData $data): Transaction
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             throw new DomainException('Account is not a debt.');
         }
 
@@ -136,7 +136,7 @@ class DebtService
      */
     public function collectPayment(Account $debt, Account $targetAccount, DebtPaymentData $data): Transaction
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             throw new DomainException('Account is not a debt.');
         }
 
@@ -178,7 +178,7 @@ class DebtService
     {
         $baseCurrency = Currency::getBase();
 
-        if (!$baseCurrency) {
+        if (! $baseCurrency) {
             return [
                 'total_i_owe' => 0,
                 'total_owed_to_me' => 0,
@@ -217,7 +217,7 @@ class DebtService
 
     public function delete(Account $debt): void
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             throw new DomainException('Account is not a debt.');
         }
 
@@ -232,11 +232,11 @@ class DebtService
 
     public function reopen(Account $debt): Account
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             throw new DomainException('Account is not a debt.');
         }
 
-        if (!$debt->is_paid_off) {
+        if (! $debt->is_paid_off) {
             throw new DomainException('Debt is not paid off.');
         }
 

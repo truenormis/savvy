@@ -21,6 +21,7 @@ class BudgetRepository
             if ($globalBudget->currency) {
                 $amount = $globalBudget->currency->convertToBase($amount);
             }
+
             return $amount;
         }
 
@@ -29,7 +30,7 @@ class BudgetRepository
             ->where('is_active', true)
             ->where('period', 'monthly');
 
-        if (!empty($filters->categoryIds)) {
+        if (! empty($filters->categoryIds)) {
             $budgetsQuery->whereHas('categories', function ($q) use ($filters) {
                 $q->whereIn('categories.id', $filters->categoryIds);
             });

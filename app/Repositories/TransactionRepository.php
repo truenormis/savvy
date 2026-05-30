@@ -49,7 +49,7 @@ class TransactionRepository
             ->groupBy('categories.id', 'categories.name', 'categories.icon', 'categories.color')
             ->orderByDesc('total')
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'id' => $row->id,
                 'name' => $row->name,
                 'icon' => $row->icon ?? 'circle',
@@ -150,7 +150,7 @@ class TransactionRepository
             ->orderByDesc('converted_amount')
             ->limit($limit)
             ->get()
-            ->map(fn($t) => [
+            ->map(fn ($t) => [
                 'id' => $t->id,
                 'description' => $t->description,
                 'amount' => round((float) $t->converted_amount, 2),
@@ -178,15 +178,15 @@ class TransactionRepository
 
     private function applyFilters($query, ReportFilterData $filters): void
     {
-        if (!empty($filters->accountIds)) {
+        if (! empty($filters->accountIds)) {
             $query->whereIn('transactions.account_id', $filters->accountIds);
         }
 
-        if (!empty($filters->categoryIds)) {
+        if (! empty($filters->categoryIds)) {
             $query->whereIn('transactions.category_id', $filters->categoryIds);
         }
 
-        if (!empty($filters->tagIds)) {
+        if (! empty($filters->tagIds)) {
             $query->whereExists(function ($subQuery) use ($filters) {
                 $subQuery->select(DB::raw(1))
                     ->from('transaction_tag')

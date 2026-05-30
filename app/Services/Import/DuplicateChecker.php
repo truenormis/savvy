@@ -3,11 +3,11 @@
 namespace App\Services\Import;
 
 use App\Models\Transaction;
-use Illuminate\Support\Collection;
 
 class DuplicateChecker
 {
     private array $existingHashes = [];
+
     private array $importHashes = [];
 
     /**

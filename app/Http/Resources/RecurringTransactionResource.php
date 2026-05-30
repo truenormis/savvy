@@ -28,9 +28,9 @@ class RecurringTransactionResource extends JsonResource
             'nextRunDate' => $this->next_run_date->toDateString(),
             'lastRunDate' => $this->last_run_date?->toDateString(),
             'isActive' => $this->is_active,
-            'account' => $this->whenLoaded('account', fn() => new AccountResource($this->account)),
-            'toAccount' => $this->whenLoaded('toAccount', fn() => $this->toAccount ? new AccountResource($this->toAccount) : null),
-            'category' => $this->whenLoaded('category', fn() => $this->category ? new CategoryResource($this->category) : null),
+            'account' => $this->whenLoaded('account', fn () => new AccountResource($this->account)),
+            'toAccount' => $this->whenLoaded('toAccount', fn () => $this->toAccount ? new AccountResource($this->toAccount) : null),
+            'category' => $this->whenLoaded('category', fn () => $this->category ? new CategoryResource($this->category) : null),
             'tags' => TagResource::collection($this->whenLoaded('tags')),
         ];
     }

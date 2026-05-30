@@ -27,7 +27,7 @@ class CurrencyService
     public function create(array $data): Currency
     {
         return DB::transaction(function () use ($data) {
-            if (!empty($data['is_base'])) {
+            if (! empty($data['is_base'])) {
                 $this->clearBaseCurrency();
                 $data['rate'] = 1;
             }
@@ -39,12 +39,12 @@ class CurrencyService
     public function update(Currency $currency, array $data): Currency
     {
         return DB::transaction(function () use ($currency, $data) {
-            if (!empty($data['is_base']) && !$currency->is_base) {
+            if (! empty($data['is_base']) && ! $currency->is_base) {
                 $this->clearBaseCurrency();
                 $data['rate'] = 1;
             }
 
-            if ($currency->is_base && isset($data['is_base']) && !$data['is_base']) {
+            if ($currency->is_base && isset($data['is_base']) && ! $data['is_base']) {
                 throw new DomainException('Cannot unset base currency. Set another currency as base first.');
             }
 

@@ -17,7 +17,6 @@ export interface RegisterData {
 
 export interface AuthResponse {
     user: User
-    token: string
 }
 
 export interface TwoFactorAuthResponse {
@@ -27,6 +26,7 @@ export interface TwoFactorAuthResponse {
 
 export interface AuthStatus {
     needs_registration: boolean
+    password_login_enabled: boolean
 }
 
 // 2FA Types

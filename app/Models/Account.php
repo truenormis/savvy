@@ -136,7 +136,7 @@ class Account extends Model
 
     public function getPaymentProgressAttribute(): float
     {
-        if (!$this->isDebt() || $this->target_amount <= 0) {
+        if (! $this->isDebt() || $this->target_amount <= 0) {
             return 0;
         }
 
@@ -147,11 +147,11 @@ class Account extends Model
 
     public function checkAndMarkAsPaidOff(): bool
     {
-        if (!$this->isDebt()) {
+        if (! $this->isDebt()) {
             return false;
         }
 
-        if ($this->current_balance <= 0 && !$this->is_paid_off) {
+        if ($this->current_balance <= 0 && ! $this->is_paid_off) {
             $this->update(['is_paid_off' => true]);
 
             return true;

@@ -25,8 +25,8 @@ export function Header() {
         navigate(`/transactions/create?type=${type}`)
     }
 
-    const handleLogout = () => {
-        logout()
+    const handleLogout = async () => {
+        await logout()
         navigate('/login')
     }
 

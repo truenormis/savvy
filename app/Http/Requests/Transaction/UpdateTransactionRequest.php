@@ -44,7 +44,7 @@ class UpdateTransactionRequest extends FormRequest
                 $this->validateCategoryType($validator);
                 $this->validateItemsTotal($validator);
                 $this->validateSufficientFunds($validator);
-            }
+            },
         ];
     }
 
@@ -58,7 +58,7 @@ class UpdateTransactionRequest extends FormRequest
                 ? $this->input('to_account_id')
                 : $transaction->to_account_id;
 
-            if (!$toAccountId) {
+            if (! $toAccountId) {
                 $validator->errors()->add('to_account_id', 'Destination account is required for transfers.');
             }
         }
@@ -74,6 +74,7 @@ class UpdateTransactionRequest extends FormRequest
 
         if ($type === TransactionType::Transfer->value && $categoryId) {
             $validator->errors()->add('category_id', 'Category should not be set for transfers.');
+
             return;
         }
 
@@ -116,12 +117,12 @@ class UpdateTransactionRequest extends FormRequest
         $newAccountId = $this->input('account_id') ?? $originalAccountId;
 
         // Only check for expense and transfer
-        if (!in_array($newType, [TransactionType::Expense->value, TransactionType::Transfer->value])) {
+        if (! in_array($newType, [TransactionType::Expense->value, TransactionType::Transfer->value])) {
             return;
         }
 
         $account = \App\Models\Account::find($newAccountId);
-        if (!$account) {
+        if (! $account) {
             return;
         }
 
@@ -139,7 +140,7 @@ class UpdateTransactionRequest extends FormRequest
         }
 
         if ($currentBalance < $newAmount) {
-            $validator->errors()->add('amount', 'Insufficient funds. Available balance: ' . number_format($currentBalance, 2));
+            $validator->errors()->add('amount', 'Insufficient funds. Available balance: '.number_format($currentBalance, 2));
         }
     }
 }

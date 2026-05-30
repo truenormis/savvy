@@ -12,13 +12,13 @@ class CurrencyApiService
 
     public function updateRates(): array
     {
-        if (!settings('auto_update_currencies', true)) {
+        if (! settings('auto_update_currencies', true)) {
             return ['status' => 'skipped', 'message' => 'Auto-update disabled'];
         }
 
         $baseCurrency = Currency::getBase();
 
-        if (!$baseCurrency) {
+        if (! $baseCurrency) {
             return ['status' => 'error', 'message' => 'No base currency set'];
         }
 
@@ -49,6 +49,7 @@ class CurrencyApiService
             return null;
         } catch (\Exception $e) {
             Log::error("Currency API error: {$e->getMessage()}");
+
             return null;
         }
     }
@@ -86,15 +87,15 @@ class CurrencyApiService
         $currencies = Currency::all();
 
         foreach ($referenceCodes as $refCode) {
-            $refCurrency = $currencies->first(fn($c) => strtolower($c->code) === $refCode);
+            $refCurrency = $currencies->first(fn ($c) => strtolower($c->code) === $refCode);
 
-            if (!$refCurrency) {
+            if (! $refCurrency) {
                 continue;
             }
 
             $apiData = $this->fetchRates($refCode);
 
-            if (!$apiData || !isset($apiData[$refCode])) {
+            if (! $apiData || ! isset($apiData[$refCode])) {
                 continue;
             }
 
@@ -102,7 +103,7 @@ class CurrencyApiService
             $baseCode = strtolower($baseCurrency->code);
 
             // Check if base currency exists in this API response
-            if (!isset($apiRates[$baseCode])) {
+            if (! isset($apiRates[$baseCode])) {
                 continue;
             }
 

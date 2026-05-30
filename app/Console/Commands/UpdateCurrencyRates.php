@@ -19,10 +19,12 @@ class UpdateCurrencyRates extends Command
 
         if ($result['status'] === 'success') {
             $this->info($result['message']);
+
             return Command::SUCCESS;
         }
 
         $this->error($result['message']);
+
         return Command::FAILURE;
     }
 }

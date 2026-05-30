@@ -10,7 +10,7 @@ class TwoFactorServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(TwoFactorService::class, function () {
-            return new TwoFactorService();
+            return new TwoFactorService;
         });
     }
 
