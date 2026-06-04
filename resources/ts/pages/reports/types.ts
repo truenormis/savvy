@@ -1,3 +1,5 @@
+import type { CashFlowGroupBy } from '@/api/reports'
+
 export type PeriodType = 'month' | 'quarter' | 'year' | 'ytd' | 'custom'
 export type CompareType = 'none' | 'previous_period' | 'same_period_last_year'
 export type ReportTab = 'overview' | 'cashflow' | 'expenses' | 'income' | 'networth'
@@ -43,6 +45,29 @@ export const DEFAULT_FILTERS: ReportFilters = {
     accountIds: [],
     categoryIds: [],
     tagIds: [],
+}
+
+export function defaultGroupBy(filters: ReportFilters): CashFlowGroupBy {
+    switch (filters.periodType) {
+        case 'month':
+            return 'day'
+        case 'quarter':
+            return 'week'
+        case 'year':
+            return 'month'
+        case 'ytd':
+            return 'week'
+        case 'custom': {
+            const start = new Date(filters.customStartDate)
+            const end = new Date(filters.customEndDate)
+            const days = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1
+            if (days <= 45) return 'day'
+            if (days <= 185) return 'week'
+            return 'month'
+        }
+        default:
+            return 'day'
+    }
 }
 
 export const TABS: { value: ReportTab; label: string }[] = [

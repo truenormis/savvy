@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { LineChart, BarChart3, ChevronDown } from 'lucide-react'
 import { useTransactionReportDynamics } from '@/hooks'
+import { defaultGroupBy } from '../types'
 import type { ReportFilters } from '../types'
 import type { CashFlowGroupBy } from '@/api/reports'
 
@@ -31,8 +32,12 @@ interface ExpensesDynamicsChartProps {
 
 export function ExpensesDynamicsChart({ filters }: ExpensesDynamicsChartProps) {
     const [chartType, setChartType] = useState<ChartType>('line')
-    const [groupBy, setGroupBy] = useState<CashFlowGroupBy>('day')
+    const [groupBy, setGroupBy] = useState<CashFlowGroupBy>(() => defaultGroupBy(filters))
     const [categories, setCategories] = useState<CategoryConfig[]>([])
+
+    useEffect(() => {
+        setGroupBy(defaultGroupBy(filters))
+    }, [filters.periodType, filters.customStartDate, filters.customEndDate])
 
     const { data, isLoading } = useTransactionReportDynamics(filters, 'expense', groupBy)
 

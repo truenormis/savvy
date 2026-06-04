@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useNetWorthHistory } from '@/hooks'
+import { defaultGroupBy } from '../types'
 import type { ReportFilters } from '../types'
 import type { CashFlowGroupBy } from '@/api/reports'
 
@@ -12,7 +13,10 @@ interface NetWorthChartProps {
 }
 
 export function NetWorthChart({ filters }: NetWorthChartProps) {
-    const [groupBy, setGroupBy] = useState<CashFlowGroupBy>('day')
+    const [groupBy, setGroupBy] = useState<CashFlowGroupBy>(() => defaultGroupBy(filters))
+    useEffect(() => {
+        setGroupBy(defaultGroupBy(filters))
+    }, [filters.periodType, filters.customStartDate, filters.customEndDate])
     const { data, isLoading } = useNetWorthHistory(filters, groupBy)
 
     const currency = data?.currency || '$'
