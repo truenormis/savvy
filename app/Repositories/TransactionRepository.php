@@ -14,8 +14,8 @@ class TransactionRepository
         $query = $this->baseQuery()
             ->where('transactions.type', $type)
             ->whereBetween('transactions.date', [
-                $dateRange['start']->toDateString(),
-                $dateRange['end']->toDateString(),
+                $dateRange['start']->toDateTimeString(),
+                $dateRange['end']->toDateTimeString(),
             ]);
 
         $this->applyFilters($query, $filters);
@@ -32,8 +32,8 @@ class TransactionRepository
             ->where('transactions.type', $type)
             ->whereNotNull('transactions.category_id')
             ->whereBetween('transactions.date', [
-                $dateRange['start']->toDateString(),
-                $dateRange['end']->toDateString(),
+                $dateRange['start']->toDateTimeString(),
+                $dateRange['end']->toDateTimeString(),
             ]);
 
         $this->applyFilters($query, $filters);
@@ -64,8 +64,8 @@ class TransactionRepository
         $query = $this->baseQuery()
             ->where('transactions.type', $type)
             ->whereBetween('transactions.date', [
-                $startDate->toDateString(),
-                $endDate->toDateString(),
+                $startDate->toDateTimeString(),
+                $endDate->toDateTimeString(),
             ]);
 
         $this->applyFilters($query, $filters);
@@ -101,8 +101,8 @@ class TransactionRepository
         $query = $this->baseQuery()
             ->where('transactions.type', $type)
             ->whereBetween('transactions.date', [
-                $dateRange['start']->toDateString(),
-                $dateRange['end']->toDateString(),
+                $dateRange['start']->toDateTimeString(),
+                $dateRange['end']->toDateTimeString(),
             ]);
 
         if ($categoryId !== null) {
@@ -128,8 +128,8 @@ class TransactionRepository
             ->leftJoin('categories', 'transactions.category_id', '=', 'categories.id')
             ->where('transactions.type', $type)
             ->whereBetween('transactions.date', [
-                $dateRange['start']->toDateString(),
-                $dateRange['end']->toDateString(),
+                $dateRange['start']->toDateTimeString(),
+                $dateRange['end']->toDateTimeString(),
             ]);
 
         $this->applyFilters($query, $filters);

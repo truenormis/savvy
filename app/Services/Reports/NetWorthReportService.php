@@ -99,6 +99,6 @@ class NetWorthReportService
 
         $accounts = $accountsQuery->get();
 
-        return $this->accountBalanceRepository->getBalancesAtDate($accounts, $date->toDateString());
+        return $this->accountBalanceRepository->getBalancesAtDate($accounts, $date->copy()->endOfDay()->toDateTimeString());
     }
 }

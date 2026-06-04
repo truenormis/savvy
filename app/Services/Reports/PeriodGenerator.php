@@ -37,6 +37,14 @@ class PeriodGenerator
                     ];
                     $current->addMonth();
                     break;
+
+                default:
+                    $periods[] = [
+                        'key' => $current->toDateString(),
+                        'label' => $current->format('M j'),
+                    ];
+                    $current->addDay();
+                    break;
             }
         }
 
@@ -46,9 +54,9 @@ class PeriodGenerator
     public function getSqlFormat(string $groupBy): string
     {
         return match ($groupBy) {
-            'day' => 'DATE(transactions.date)',
             'week' => "DATE(transactions.date, '-' || strftime('%w', transactions.date) || ' days')",
             'month' => "DATE(transactions.date, 'start of month')",
+            default => 'DATE(transactions.date)',
         };
     }
 
