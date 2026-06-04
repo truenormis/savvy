@@ -66,6 +66,8 @@ export interface ImportPreviewSummary {
     willCreate: number
     willSkip: number
     hasErrors: number
+    totalRows: number | null
+    sampled: number
     currenciesToCreate: string[]
     tagsToCreate: string[]
     categoriesToCreate: string[]
@@ -91,3 +93,24 @@ export interface ImportResult {
 }
 
 export type ImportStep = 'upload' | 'mapping' | 'preview' | 'result'
+
+export type ImportStatus =
+    | 'pending'
+    | 'parsing'
+    | 'parsed'
+    | 'importing'
+    | 'completed'
+    | 'failed'
+
+export interface ImportState {
+    importId: string
+    status: ImportStatus
+    totalRows: number | null
+    processedRows: number
+    created: number
+    skipped: number
+    errors: number
+    message: string | null
+    parse: CsvParseResult | null
+    result: ImportResult | null
+}

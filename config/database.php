@@ -43,6 +43,41 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
+        // Dedicated SQLite files so queue/cache/session writes do not contend
+        // with the application data writer lock (single-container philosophy).
+        'sqlite_queue' => [
+            'driver' => 'sqlite',
+            'database' => env('DB_QUEUE_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+            'prefix' => '',
+            'foreign_key_constraints' => false,
+            'busy_timeout' => env('DB_BUSY_TIMEOUT', 5000),
+            'journal_mode' => env('DB_JOURNAL_MODE', 'WAL'),
+            'synchronous' => env('DB_SYNCHRONOUS', 'NORMAL'),
+            'transaction_mode' => 'DEFERRED',
+        ],
+
+        'sqlite_cache' => [
+            'driver' => 'sqlite',
+            'database' => env('DB_CACHE_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+            'prefix' => '',
+            'foreign_key_constraints' => false,
+            'busy_timeout' => env('DB_BUSY_TIMEOUT', 5000),
+            'journal_mode' => env('DB_JOURNAL_MODE', 'WAL'),
+            'synchronous' => env('DB_SYNCHRONOUS', 'NORMAL'),
+            'transaction_mode' => 'DEFERRED',
+        ],
+
+        'sqlite_sessions' => [
+            'driver' => 'sqlite',
+            'database' => env('DB_SESSIONS_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+            'prefix' => '',
+            'foreign_key_constraints' => false,
+            'busy_timeout' => env('DB_BUSY_TIMEOUT', 5000),
+            'journal_mode' => env('DB_JOURNAL_MODE', 'WAL'),
+            'synchronous' => env('DB_SYNCHRONOUS', 'NORMAL'),
+            'transaction_mode' => 'DEFERRED',
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),

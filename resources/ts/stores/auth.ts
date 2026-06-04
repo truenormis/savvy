@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { authApi } from '@/api'
+import { startAuthentication } from '@simplewebauthn/browser'
+import { authApi, webauthnApi } from '@/api'
 import { setOnUnauthorized } from '@/api/client'
 import { User, LoginCredentials, RegisterData, AuthResponse, TwoFactorAuthResponse } from '@/types'
 
@@ -14,6 +15,7 @@ interface AuthState {
 
     login: (credentials: LoginCredentials) => Promise<LoginResult>
     loginWith2FA: (twoFactorToken: string, code: string) => Promise<void>
+    loginWithPasskey: (options?: { twoFactorToken?: string; useAutofill?: boolean }) => Promise<void>
     register: (data: RegisterData) => Promise<void>
     logout: () => Promise<void>
     checkAuth: () => Promise<void>
@@ -43,6 +45,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     loginWith2FA: async (twoFactorToken, code) => {
         const { user } = await authApi.twoFactorVerify(twoFactorToken, code)
+        set({ user, isAuthenticated: true })
+    },
+
+    loginWithPasskey: async ({ twoFactorToken, useAutofill } = {}) => {
+        const { token, options } = await webauthnApi.loginOptions(twoFactorToken)
+        const assertion = await startAuthentication({
+            optionsJSON: options,
+            useBrowserAutofill: useAutofill ?? false,
+        })
+        const { user } = await webauthnApi.loginVerify(token, assertion, twoFactorToken)
         set({ user, isAuthenticated: true })
     },
 

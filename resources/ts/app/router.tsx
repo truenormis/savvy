@@ -44,6 +44,7 @@ const UsersPage = lazy(() => import('@/pages/users'))
 const UserCreatePage = lazy(() => import('@/pages/users/create'))
 const UserEditPage = lazy(() => import('@/pages/users/[id]/edit'))
 const ReportsPage = lazy(() => import('@/pages/reports'))
+const MonitoringPage = lazy(() => import('@/pages/settings/monitoring'))
 const SystemSettingsPage = lazy(() => import('@/pages/settings/system'))
 const SecuritySettingsPage = lazy(() => import('@/pages/settings/security'))
 const ImportSettingsPage = lazy(() => import('@/pages/settings/import'))
@@ -53,7 +54,7 @@ const ProviderCreatePage = lazy(() => import('@/pages/settings/providers/create'
 const ProviderEditPage = lazy(() => import('@/pages/settings/providers/[id]/edit'))
 const NotFoundPage = lazy(() => import('@/pages/not-found'))
 
-const withSuspense = (Component: React.LazyExoticComponent<() => JSX.Element>) => (
+const withSuspense = (Component: React.LazyExoticComponent<() => React.JSX.Element>) => (
     <ErrorBoundary>
         <Suspense fallback={
             <div className="flex items-center justify-center min-h-[200px]">
@@ -126,6 +127,7 @@ export const router = createBrowserRouter([
                     { path: 'users/:id/edit', element: withSuspense(UserEditPage) },
                     { path: 'reports', element: withSuspense(ReportsPage) },
                     { path: 'settings/system', element: withSuspense(SystemSettingsPage) },
+                    { path: 'settings/monitoring', element: withSuspense(MonitoringPage) },
                     { path: 'settings/security', element: withSuspense(SecuritySettingsPage) },
                     { path: 'settings/import', element: withSuspense(ImportSettingsPage) },
                     { path: 'settings/backups', element: withSuspense(BackupsSettingsPage) },

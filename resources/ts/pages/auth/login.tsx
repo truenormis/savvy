@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,11 +20,16 @@ import {
     InputOTPSlot,
     InputOTPSeparator,
 } from '@/components/ui/input-otp'
-import { Loader2, ArrowLeft, Key } from 'lucide-react'
+import { Loader2, ArrowLeft, Key, Fingerprint } from 'lucide-react'
+import {
+    browserSupportsWebAuthn,
+    browserSupportsWebAuthnAutofill,
+} from '@simplewebauthn/browser'
 import { useAuthStore } from '@/stores/auth'
 import { Logo } from '@/components/shared/Logo'
 import { SsoButtons } from '@/components/features/sso'
 import { authApi } from '@/api'
+import { passkeyErrorMessage, isPasskeyDomainSupported } from '@/hooks'
 import { toast } from 'sonner'
 
 const loginSchema = z.object({
@@ -40,6 +45,7 @@ export default function LoginPage() {
     const [searchParams] = useSearchParams()
     const login = useAuthStore((state) => state.login)
     const loginWith2FA = useAuthStore((state) => state.loginWith2FA)
+    const loginWithPasskey = useAuthStore((state) => state.loginWithPasskey)
     const [isLoading, setIsLoading] = useState(false)
     const [checkingStatus, setCheckingStatus] = useState(true)
     const [passwordLoginEnabled, setPasswordLoginEnabled] = useState(true)
@@ -47,6 +53,9 @@ export default function LoginPage() {
     const [otpValue, setOtpValue] = useState('')
     const [useRecoveryCode, setUseRecoveryCode] = useState(false)
     const [recoveryCode, setRecoveryCode] = useState('')
+    const [passkeyLoading, setPasskeyLoading] = useState(false)
+    const [passkeySupported] = useState(() => browserSupportsWebAuthn() && isPasskeyDomainSupported())
+    const autofillStarted = useRef(false)
 
     useEffect(() => {
         authApi.status().then((status) => {
@@ -72,6 +81,38 @@ export default function LoginPage() {
             toast.error('Single sign-on failed. Please try again.')
         }
     }, [searchParams])
+
+    useEffect(() => {
+        if (checkingStatus || twoFactorToken || autofillStarted.current || !isPasskeyDomainSupported()) return
+        autofillStarted.current = true
+
+        let cancelled = false
+        browserSupportsWebAuthnAutofill().then((supported) => {
+            if (!supported || cancelled) return
+            loginWithPasskey({ useAutofill: true })
+                .then(() => {
+                    if (!cancelled) navigate('/')
+                })
+                .catch(() => {})
+        })
+
+        return () => {
+            cancelled = true
+        }
+    }, [checkingStatus, twoFactorToken, loginWithPasskey, navigate])
+
+    const handlePasskeyLogin = async (stepUpToken?: string) => {
+        setPasskeyLoading(true)
+        try {
+            await loginWithPasskey({ twoFactorToken: stepUpToken })
+            toast.success('Welcome back!')
+            navigate('/')
+        } catch (error: unknown) {
+            toast.error(passkeyErrorMessage(error, 'Passkey sign-in failed'))
+        } finally {
+            setPasskeyLoading(false)
+        }
+    }
 
     const form = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
@@ -200,6 +241,19 @@ export default function LoginPage() {
                                 {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
                                 Verify
                             </Button>
+                            {passkeySupported && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => handlePasskeyLogin(twoFactorToken)}
+                                    className="w-full"
+                                    disabled={passkeyLoading || isLoading}
+                                >
+                                    {passkeyLoading
+                                        ? <Loader2 className="mr-2 size-4 animate-spin" />
+                                        : <Fingerprint className="mr-2 size-4" />}
+                                    Use a passkey instead
+                                </Button>
+                            )}
                             <Button
                                 variant="ghost"
                                 onClick={() => {
@@ -242,6 +296,19 @@ export default function LoginPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {passkeySupported && (
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => handlePasskeyLogin()}
+                            disabled={passkeyLoading}
+                        >
+                            {passkeyLoading
+                                ? <Loader2 className="mr-2 size-4 animate-spin" />
+                                : <Fingerprint className="mr-2 size-4" />}
+                            Sign in with a passkey
+                        </Button>
+                    )}
                     <SsoButtons showDivider={passwordLoginEnabled} />
                     {passwordLoginEnabled && (
                     <Form {...form}>
@@ -256,7 +323,7 @@ export default function LoginPage() {
                                             <Input
                                                 type="email"
                                                 placeholder="you@example.com"
-                                                autoComplete="email"
+                                                autoComplete="username webauthn"
                                                 {...field}
                                             />
                                         </FormControl>

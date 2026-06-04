@@ -6,12 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+    private function connection(): ?string
+    {
+        return config('queue.connections.database.connection') ?: config('database.default');
+    }
+
     public function up(): void
     {
-        Schema::create('jobs', function (Blueprint $table) {
+        Schema::connection($this->connection())->create('jobs', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('queue')->index();
             $table->longText('payload');
@@ -22,11 +24,8 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('jobs');
+        Schema::connection($this->connection())->dropIfExists('jobs');
     }
 };

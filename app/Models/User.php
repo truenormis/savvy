@@ -50,6 +50,16 @@ class User extends Authenticatable
         return $this->hasMany(AuthSession::class);
     }
 
+    public function webauthnCredentials(): HasMany
+    {
+        return $this->hasMany(WebauthnCredential::class);
+    }
+
+    public function hasPasskeys(): bool
+    {
+        return $this->webauthnCredentials()->exists();
+    }
+
     public function hasTwoFactorEnabled(): bool
     {
         return $this->two_factor_enabled && $this->two_factor_confirmed;

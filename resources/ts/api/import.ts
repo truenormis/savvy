@@ -5,6 +5,7 @@ import type {
     ImportOptions,
     ImportPreviewResult,
     ImportResult,
+    ImportState,
 } from '@/types/import'
 
 const ENDPOINT = '/transactions/import'
@@ -64,6 +65,8 @@ const previewResultFromSnakeCase = (data: Record<string, unknown>): ImportPrevie
         willCreate: (data.summary as Record<string, unknown>).will_create as number,
         willSkip: (data.summary as Record<string, unknown>).will_skip as number,
         hasErrors: (data.summary as Record<string, unknown>).has_errors as number,
+        totalRows: ((data.summary as Record<string, unknown>).total_rows as number | null) ?? null,
+        sampled: ((data.summary as Record<string, unknown>).sampled as number) ?? 0,
         currenciesToCreate: (data.summary as Record<string, unknown>).currencies_to_create as string[],
         tagsToCreate: (data.summary as Record<string, unknown>).tags_to_create as string[],
         categoriesToCreate: (data.summary as Record<string, unknown>).categories_to_create as string[],
@@ -82,18 +85,32 @@ const importResultFromSnakeCase = (data: Record<string, unknown>): ImportResult 
     createdCategories: data.created_categories as string[],
 })
 
+const importStateFromSnakeCase = (data: Record<string, unknown>): ImportState => ({
+    importId: data.import_id as string,
+    status: data.status as ImportState['status'],
+    totalRows: (data.total_rows as number | null) ?? null,
+    processedRows: (data.processed_rows as number) ?? 0,
+    created: (data.created as number) ?? 0,
+    skipped: (data.skipped as number) ?? 0,
+    errors: (data.errors as number) ?? 0,
+    message: (data.message as string | null) ?? null,
+    parse: data.parse ? parseResultFromSnakeCase(data.parse as Record<string, unknown>) : null,
+    result: data.result ? importResultFromSnakeCase(data.result as Record<string, unknown>) : null,
+})
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 export const importApi = {
-    parse: async (file: File): Promise<CsvParseResult> => {
-        const formData = new FormData()
-        formData.append('file', file)
+    parse: async (uploadId: string): Promise<ImportState> => {
+        const response = await apiClient.post(`${ENDPOINT}/parse`, { upload_id: uploadId })
 
-        const response = await apiClient.post(`${ENDPOINT}/parse`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        })
+        return importStateFromSnakeCase(response.data.data)
+    },
 
-        return parseResultFromSnakeCase(response.data.data)
+    status: async (importId: string): Promise<ImportState> => {
+        const response = await apiClient.get(`${ENDPOINT}/${importId}`)
+
+        return importStateFromSnakeCase(response.data.data)
     },
 
     preview: async (
@@ -110,17 +127,39 @@ export const importApi = {
         return previewResultFromSnakeCase(response.data.data)
     },
 
-    import: async (
+    execute: async (
         importId: string,
         mapping: ColumnMapping,
         options: ImportOptions
-    ): Promise<ImportResult> => {
-        const response = await apiClient.post(`${ENDPOINT}`, {
+    ): Promise<ImportState> => {
+        const response = await apiClient.post(`${ENDPOINT}/execute`, {
             import_id: importId,
             mapping: toSnakeCase(mapping),
             options: optionsToSnakeCase(options),
         })
 
-        return importResultFromSnakeCase(response.data.data)
+        return importStateFromSnakeCase(response.data.data)
+    },
+
+    poll: async (
+        importId: string,
+        until: (state: ImportState) => boolean,
+        onTick?: (state: ImportState) => void,
+        intervalMs = 1000
+    ): Promise<ImportState> => {
+        while (true) {
+            const state = await importApi.status(importId)
+            onTick?.(state)
+
+            if (state.status === 'failed') {
+                throw new Error(state.message || 'Import failed')
+            }
+
+            if (until(state)) {
+                return state
+            }
+
+            await delay(intervalMs)
+        }
     },
 }

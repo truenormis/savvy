@@ -34,5 +34,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\App\Services\Upload\UploadException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->status());
+        });
+        $exceptions->render(function (\App\Services\Auth\Webauthn\WebauthnException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        });
     })->create();

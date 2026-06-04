@@ -54,3 +54,27 @@ export interface TwoFactorRegenerateResponse {
     message: string
     recovery_codes: string[]
 }
+
+// Passkey (WebAuthn) Types
+import type {
+    PublicKeyCredentialCreationOptionsJSON,
+    PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/browser'
+
+export interface WebauthnCredentialSummary {
+    id: number
+    name: string | null
+    aaguid: string | null
+    last_used_at: string | null
+    created_at: string
+}
+
+export interface WebauthnRegisterOptions {
+    token: string
+    options: PublicKeyCredentialCreationOptionsJSON
+}
+
+export interface WebauthnLoginOptions {
+    token: string
+    options: PublicKeyCredentialRequestOptionsJSON
+}
