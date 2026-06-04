@@ -13,7 +13,7 @@ class BackupService
 {
     public function create(?string $note = null): Backup
     {
-        $filename = 'backup-' . now()->format('Y-m-d-H-i-s') . '.sqlite';
+        $filename = 'backup-'.now()->format('Y-m-d-H-i-s').'.sqlite';
         $path = config('backup.path');
 
         File::ensureDirectoryExists($path);
@@ -28,7 +28,7 @@ class BackupService
 
     public function upload(UploadedFile $file, ?string $note = null): Backup
     {
-        $filename = 'backup-' . now()->format('Y-m-d-H-i-s') . '.sqlite';
+        $filename = 'backup-'.now()->format('Y-m-d-H-i-s').'.sqlite';
         $path = config('backup.path');
 
         File::ensureDirectoryExists($path);
@@ -80,6 +80,6 @@ class BackupService
 
     public function getPath(string $filename): string
     {
-        return config('backup.path') . '/' . $filename;
+        return config('backup.path').'/'.$filename;
     }
 }

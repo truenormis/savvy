@@ -51,7 +51,11 @@ class OverviewReportService
         $income = $this->transactionRepository->sumByType('income', $dateRange, $filters);
         $expenses = $this->transactionRepository->sumByType('expense', $dateRange, $filters);
         $net = $income - $expenses;
-        $savingsRate = $income > 0 ? round(($net / $income) * 100, 1) : 0;
+        $savingsRate = match (true) {
+            $income > 0 => round(($net / $income) * 100, 1),
+            $expenses > 0 => -100.0,
+            default => 0.0,
+        };
 
         return [
             'income' => round($income, 2),

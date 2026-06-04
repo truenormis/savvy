@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\IssuesAuthSession;
+use App\Services\Auth\TwoFactorChallengeService;
 use App\Services\TwoFactorService;
-use App\Services\JwtService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TwoFactorController extends Controller
 {
+    use IssuesAuthSession;
+
     public function __construct(
         private TwoFactorService $twoFactor,
-        private JwtService $jwt
+        private TwoFactorChallengeService $challenges
     ) {}
 
     /**
@@ -46,7 +49,7 @@ class TwoFactorController extends Controller
 
         $user = $request->user();
 
-        if (!$this->twoFactor->needsConfirmation($user)) {
+        if (! $this->twoFactor->needsConfirmation($user)) {
             return response()->json([
                 'message' => 'Two-factor authentication is not pending confirmation.',
             ], 400);
@@ -77,13 +80,13 @@ class TwoFactorController extends Controller
 
         $user = $request->user();
 
-        if (!$user->hasTwoFactorEnabled()) {
+        if (! $user->hasTwoFactorEnabled()) {
             return response()->json([
                 'message' => 'Two-factor authentication is not enabled.',
             ], 400);
         }
 
-        if (!$this->twoFactor->disable($user, $request->code)) {
+        if (! $this->twoFactor->disable($user, $request->code)) {
             return response()->json([
                 'message' => 'Invalid verification code.',
             ], 422);
@@ -104,37 +107,26 @@ class TwoFactorController extends Controller
             'code' => 'required|string',
         ]);
 
-        // Decode the temporary token to get user ID
-        $userId = $this->jwt->getUserId($request->two_factor_token);
+        $user = $this->challenges->resolve($request->two_factor_token);
 
-        if (!$userId) {
+        if (! $user) {
             return response()->json([
                 'message' => 'Invalid or expired token.',
             ], 401);
         }
 
-        $user = \App\Models\User::find($userId);
-
-        if (!$user) {
-            return response()->json([
-                'message' => 'User not found.',
-            ], 401);
-        }
-
-        // Try TOTP code first, then recovery code
         $verified = $this->twoFactor->verify($user, $request->code)
             || $this->twoFactor->verifyRecoveryCode($user, $request->code);
 
-        if (!$verified) {
+        if (! $verified) {
             return response()->json([
                 'message' => 'Invalid verification code.',
             ], 422);
         }
 
-        return response()->json([
-            'user' => $this->userResponse($user),
-            'token' => $this->jwt->encode($user),
-        ]);
+        $this->challenges->consume($request->two_factor_token);
+
+        return $this->issueSession($user, $request);
     }
 
     /**
@@ -144,7 +136,7 @@ class TwoFactorController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasTwoFactorEnabled()) {
+        if (! $user->hasTwoFactorEnabled()) {
             return response()->json([
                 'message' => 'Two-factor authentication is not enabled.',
             ], 400);
@@ -166,7 +158,7 @@ class TwoFactorController extends Controller
 
         $user = $request->user();
 
-        if (!$user->hasTwoFactorEnabled()) {
+        if (! $user->hasTwoFactorEnabled()) {
             return response()->json([
                 'message' => 'Two-factor authentication is not enabled.',
             ], 400);
@@ -200,15 +192,5 @@ class TwoFactorController extends Controller
                 ? $this->twoFactor->getRemainingRecoveryCodesCount($user)
                 : null,
         ]);
-    }
-
-    private function userResponse($user): array
-    {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->role,
-        ];
     }
 }

@@ -9,43 +9,61 @@ class BudgetRepository
 {
     public function getMonthlyBudget(ReportFilterData $filters): ?float
     {
-        $globalBudget = Budget::query()
+        $hasCategoryOrTagScope = ! empty($filters->categoryIds) || ! empty($filters->tagIds);
+
+        if (! $hasCategoryOrTagScope) {
+            if (! empty($filters->accountIds)) {
+                return null;
+            }
+
+            $globalBudget = Budget::query()
+                ->with('currency')
+                ->where('is_active', true)
+                ->where('is_global', true)
+                ->where('period', 'monthly')
+                ->first();
+
+            if ($globalBudget) {
+                return $this->toBase($globalBudget);
+            }
+
+            return $this->sumBudgets(
+                Budget::query()->with('currency')->where('is_active', true)->where('period', 'monthly')->get()
+            );
+        }
+
+        $budgets = Budget::query()
             ->with('currency')
             ->where('is_active', true)
-            ->where('is_global', true)
             ->where('period', 'monthly')
-            ->first();
+            ->where('is_global', false)
+            ->where(function ($q) use ($filters) {
+                if (! empty($filters->categoryIds)) {
+                    $q->orWhereHas('categories', fn ($c) => $c->whereIn('categories.id', $filters->categoryIds));
+                }
+                if (! empty($filters->tagIds)) {
+                    $q->orWhereHas('tags', fn ($t) => $t->whereIn('tags.id', $filters->tagIds));
+                }
+            })
+            ->get();
 
-        if ($globalBudget) {
-            $amount = (float) $globalBudget->amount;
-            if ($globalBudget->currency) {
-                $amount = $globalBudget->currency->convertToBase($amount);
-            }
-            return $amount;
-        }
+        return $this->sumBudgets($budgets);
+    }
 
-        $budgetsQuery = Budget::query()
-            ->with('currency')
-            ->where('is_active', true)
-            ->where('period', 'monthly');
-
-        if (!empty($filters->categoryIds)) {
-            $budgetsQuery->whereHas('categories', function ($q) use ($filters) {
-                $q->whereIn('categories.id', $filters->categoryIds);
-            });
-        }
-
-        $budgets = $budgetsQuery->get();
-
-        $totalBudget = 0;
+    private function sumBudgets($budgets): ?float
+    {
+        $total = 0;
         foreach ($budgets as $budget) {
-            $amount = (float) $budget->amount;
-            if ($budget->currency) {
-                $amount = $budget->currency->convertToBase($amount);
-            }
-            $totalBudget += $amount;
+            $total += $this->toBase($budget);
         }
 
-        return $totalBudget > 0 ? $totalBudget : null;
+        return $total > 0 ? $total : null;
+    }
+
+    private function toBase(Budget $budget): float
+    {
+        $amount = (float) $budget->amount;
+
+        return $budget->currency ? $budget->currency->convertToBase($amount) : $amount;
     }
 }

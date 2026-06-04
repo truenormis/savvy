@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chartmuseum
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: chartmuseum-data
+  namespace: chartmuseum
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chartmuseum-auth
+  namespace: chartmuseum
+type: Opaque
+stringData:
+  BASIC_AUTH_USER: admin
+  BASIC_AUTH_PASS: __BASIC_AUTH_PASS__
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chartmuseum
+  namespace: chartmuseum
+  labels:
+    app.kubernetes.io/name: chartmuseum
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chartmuseum
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chartmuseum
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: chartmuseum
+          image: ghcr.io/helm/chartmuseum:v0.16.3
+          args:
+            - --port=8080
+            - --storage=local
+            - --storage-local-rootdir=/charts
+          env:
+            - name: DEPTH
+              value: "0"
+            - name: DISABLE_API
+              value: "false"
+            - name: AUTH_ANONYMOUS_GET
+              value: "true"
+            - name: BASIC_AUTH_USER
+              valueFrom:
+                secretKeyRef:
+                  name: chartmuseum-auth
+                  key: BASIC_AUTH_USER
+            - name: BASIC_AUTH_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: chartmuseum-auth
+                  key: BASIC_AUTH_PASS
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /charts
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: chartmuseum-data
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chartmuseum
+  namespace: chartmuseum
+  labels:
+    app.kubernetes.io/name: chartmuseum
+spec:
+  selector:
+    app.kubernetes.io/name: chartmuseum
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: chartmuseum
+  namespace: chartmuseum
+spec:
+  hostnames:
+    - charts.trysavvy.dev
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: kube-system
+      sectionName: charts-https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: chartmuseum
+          port: 80
+          weight: 1

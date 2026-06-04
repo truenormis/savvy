@@ -10,6 +10,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Moon, Sun, Wallet, Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, LogOut } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useTheme } from '@/hooks/use-theme'
 import { useTotalBalance } from '@/hooks'
 import { useNavigate } from 'react-router-dom'
@@ -17,16 +18,17 @@ import { useAuthStore } from '@/stores/auth'
 import { getUserAvatarUrl, getUserInitials } from '@/lib/avatar'
 export function Header() {
     const { theme, toggleTheme } = useTheme()
-    const { data: balance } = useTotalBalance()
+    const { data: balance, isLoading: balanceLoading } = useTotalBalance()
     const navigate = useNavigate()
-    const { user, logout } = useAuthStore()
+    const user = useAuthStore((state) => state.user)
+    const logout = useAuthStore((state) => state.logout)
 
     const handleCreateTransaction = (type: 'income' | 'expense' | 'transfer') => {
         navigate(`/transactions/create?type=${type}`)
     }
 
-    const handleLogout = () => {
-        logout()
+    const handleLogout = async () => {
+        await logout()
         navigate('/login')
     }
 
@@ -62,14 +64,19 @@ export function Header() {
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {balance && (
+                    {balanceLoading ? (
+                        <div className="flex items-center gap-2 text-sm">
+                            <Wallet className="size-4 text-muted-foreground" />
+                            <Skeleton className="h-4 w-20" />
+                        </div>
+                    ) : balance ? (
                         <div className="flex items-center gap-2 text-sm">
                             <Wallet className="size-4 text-muted-foreground" />
                             <span className="font-mono font-medium">
                                 {(balance.total_balance ?? 0).toFixed(balance.decimals ?? 2)} {balance.currency}
                             </span>
                         </div>
-                    )}
+                    ) : null}
 
                     <Button
                         variant="ghost"

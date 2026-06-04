@@ -4,36 +4,66 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AutomationRuleController;
 use App\Http\Controllers\BackupController;
-use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\DebtController;
+use App\Http\Controllers\IdentityProviderController;
+use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SsoController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionImportController;
+use App\Http\Controllers\TwoFactorController;
+use App\Http\Controllers\UploadController;
+use App\Http\Controllers\WebauthnController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('auth/status', [AuthController::class, 'status']);
+Route::get('auth/me', [AuthController::class, 'me']);
 Route::post('auth/register', [AuthController::class, 'register']);
 Route::post('auth/login', [AuthController::class, 'login']);
 
 // 2FA verification (public - used during login flow)
 Route::post('auth/2fa/verify', [TwoFactorController::class, 'verify']);
 
+// Passkey (WebAuthn) login — public, usernameless / step-up
+Route::prefix('auth/webauthn')->middleware('throttle:30,1')->group(function () {
+    Route::post('login/options', [WebauthnController::class, 'loginOptions']);
+    Route::post('login/verify', [WebauthnController::class, 'loginVerify']);
+});
+
+// SSO (public, browser-driven redirect flow)
+Route::prefix('auth/sso')->middleware('throttle:30,1')->group(function () {
+    Route::get('providers', [SsoController::class, 'providers'])->name('sso.providers');
+    Route::post('exchange', [SsoController::class, 'exchange'])->name('sso.exchange');
+    Route::get('{slug}/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
+    Route::get('{slug}/callback', [SsoController::class, 'callback'])->name('sso.callback');
+    Route::post('{slug}/acs', [SsoController::class, 'acs'])->name('sso.acs');
+    Route::get('{slug}/metadata', [SsoController::class, 'metadata'])->name('sso.metadata');
+});
+
+// Signed, keyless multipart part upload (parallel, presigned-style direct to volume)
+Route::put('uploads/{upload}/parts/{partNumber}', [UploadController::class, 'uploadPart'])
+    ->whereNumber('partNumber')
+    ->middleware('signed')
+    ->name('uploads.part');
+
 // Protected routes
-Route::middleware('jwt')->group(function () {
+Route::middleware(['session', 'csrf'])->group(function () {
     // Auth routes (available to all authenticated users)
-    Route::get('auth/me', [AuthController::class, 'me']);
-    Route::post('auth/refresh', [AuthController::class, 'refresh']);
+    Route::post('auth/logout', [AuthController::class, 'logout']);
 
     // 2FA status (available to all authenticated users)
     Route::get('auth/2fa/status', [TwoFactorController::class, 'status']);
+
+    // Passkeys: list for all authenticated users
+    Route::get('auth/webauthn/credentials', [WebauthnController::class, 'index']);
 
     // 2FA configuration (not available to read-only users)
     Route::middleware('write')->group(function () {
@@ -42,6 +72,12 @@ Route::middleware('jwt')->group(function () {
         Route::post('auth/2fa/disable', [TwoFactorController::class, 'disable']);
         Route::get('auth/2fa/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
         Route::post('auth/2fa/recovery-codes/regenerate', [TwoFactorController::class, 'regenerateRecoveryCodes']);
+
+        // Passkey registration & management (not for read-only users)
+        Route::post('auth/webauthn/register/options', [WebauthnController::class, 'registerOptions']);
+        Route::post('auth/webauthn/register/verify', [WebauthnController::class, 'registerVerify']);
+        Route::patch('auth/webauthn/credentials/{credential}', [WebauthnController::class, 'update']);
+        Route::delete('auth/webauthn/credentials/{credential}', [WebauthnController::class, 'destroy']);
     });
 
     // Users: read for all, write for admin only
@@ -52,6 +88,11 @@ Route::middleware('jwt')->group(function () {
         Route::put('users/{user}', [UserController::class, 'update']);
         Route::patch('users/{user}', [UserController::class, 'update']);
         Route::delete('users/{user}', [UserController::class, 'destroy']);
+
+        // SSO identity provider administration
+        Route::get('auth/sso/presets', [IdentityProviderController::class, 'presets']);
+        Route::post('identity-providers/{identity_provider}/test', [IdentityProviderController::class, 'test']);
+        Route::apiResource('identity-providers', IdentityProviderController::class);
     });
 
     // Resources with write access control
@@ -79,11 +120,21 @@ Route::middleware('jwt')->group(function () {
         Route::post('transactions/{transaction}/duplicate', [TransactionController::class, 'duplicate']);
         Route::get('transactions-summary', [TransactionController::class, 'summary']);
 
-        // Transaction Import
+        // Universal S3-compatible multipart uploads (Uppy AwsS3 companion protocol)
+        Route::prefix('s3/multipart')->group(function () {
+            Route::post('/', [UploadController::class, 'create']);
+            Route::get('{upload}', [UploadController::class, 'listParts']);
+            Route::get('{upload}/{partNumber}', [UploadController::class, 'signPart'])->whereNumber('partNumber');
+            Route::post('{upload}/complete', [UploadController::class, 'complete']);
+            Route::delete('{upload}', [UploadController::class, 'abort']);
+        });
+
+        // Transaction Import (async pipeline backed by multipart uploads)
         Route::prefix('transactions/import')->group(function () {
             Route::post('parse', [TransactionImportController::class, 'parse']);
             Route::post('preview', [TransactionImportController::class, 'preview']);
-            Route::post('/', [TransactionImportController::class, 'import']);
+            Route::post('execute', [TransactionImportController::class, 'execute']);
+            Route::get('{import}', [TransactionImportController::class, 'show'])->whereUuid('import');
         });
 
         Route::apiResource('budgets', BudgetController::class);
@@ -112,6 +163,12 @@ Route::middleware('jwt')->group(function () {
         Route::get('reports/net-worth', [ReportController::class, 'netWorth']);
         Route::get('reports/net-worth-history', [ReportController::class, 'netWorthHistory']);
 
+        // Monitoring (volume / storage telemetry)
+        Route::prefix('monitoring')->group(function () {
+            Route::get('storage', [MonitoringController::class, 'storage']);
+            Route::get('resources', [MonitoringController::class, 'resources']);
+        });
+
         // Settings (admin + read-write can modify)
         Route::get('settings', [SettingsController::class, 'index']);
         Route::patch('settings', [SettingsController::class, 'update']);
@@ -135,4 +192,3 @@ Route::middleware('jwt')->group(function () {
         Route::post('automation-rules/reorder', [AutomationRuleController::class, 'reorder']);
     });
 });
-

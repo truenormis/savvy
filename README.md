@@ -191,7 +191,19 @@ Deploy as a single-replica `Deployment` with a `PersistentVolumeClaim` mounted a
           periodSeconds: 10
 ```
 
-Helm chart coming soon.
+### Helm
+
+A production-grade chart is published to the ChartMuseum repository at
+`https://charts.trysavvy.dev`:
+
+```bash
+helm repo add savvy https://charts.trysavvy.dev
+helm repo update
+helm install savvy savvy/savvy -n savvy --create-namespace
+```
+
+See [`deploy/helm/savvy/README.md`](deploy/helm/savvy/README.md) for values and
+design notes.
 
 ## 🔄 Updating
 ```bash

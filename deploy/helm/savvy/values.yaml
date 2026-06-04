@@ -1,0 +1,320 @@
+# =============================================================================
+# Savvy — production-grade Helm values
+# -----------------------------------------------------------------------------
+# Savvy is a single-container, SQLite-only application: nginx + php-fpm + queue
+# worker + scheduler run together under supervisord, and the database is a
+# single SQLite file on a persistent volume. This is the design — not a
+# limitation to work around. The chart does not offer external databases,
+# sidecar datastores, or horizontal scaling; the database is single-writer and
+# always runs as exactly one pod. It "just works" on any conformant cluster.
+# =============================================================================
+
+# -- Number of application replicas. Must be 1 — SQLite is single-writer and the
+# chart refuses any other value to prevent silent database corruption.
+replicaCount: 1
+
+image:
+  # -- Container image repository for the Savvy application (published to Docker Hub by CI).
+  repository: docker.io/truenormis/savvy
+  # -- Image pull policy. Use IfNotPresent in prod with immutable tags/digests.
+  pullPolicy: IfNotPresent
+  # -- Image tag. Defaults to the chart's appVersion when empty.
+  tag: ""
+  # -- Pin an image by digest (sha256:...). Takes precedence over `tag`.
+  digest: ""
+
+# -- Image pull secrets for private registries.
+imagePullSecrets: []
+#  - name: ghcr-credentials
+
+# -- Override the chart name portion of resource names.
+nameOverride: ""
+# -- Fully override the generated resource name.
+fullnameOverride: ""
+
+# -- Extra labels applied to every rendered object.
+commonLabels: {}
+# -- Extra annotations applied to every rendered object.
+commonAnnotations: {}
+
+serviceAccount:
+  # -- Create a dedicated ServiceAccount for the workload.
+  create: true
+  # -- Name of the ServiceAccount. Generated when empty and create=true.
+  name: ""
+  # -- Annotations for the ServiceAccount (e.g. IRSA / Workload Identity).
+  annotations: {}
+  # -- Mount the ServiceAccount token into the pod. Disable unless the app
+  # talks to the Kubernetes API (Savvy does not).
+  automount: false
+
+# =============================================================================
+# Application configuration / .env
+# -----------------------------------------------------------------------------
+# By default (`manage: false`) the container self-bootstraps its own .env on the
+# persistent volume: it generates a random APP_KEY, provisions the SQLite file
+# and runs migrations + seeders on first start. Convenient, but the APP_KEY is
+# ephemeral and tied to the volume — recreate the PVC and every encrypted value
+# / signed cookie is invalidated.
+#
+# Set `manage: true` to make Helm the source of truth for the .env: the chart
+# renders a Secret and an init container seeds it onto the data volume before
+# the app starts. This is for a stable, GitOps-controlled APP_KEY and app
+# settings (name, URL, log level, mail) — the database stays SQLite-on-volume.
+# This does NOT introduce external databases or change the single-pod topology.
+# =============================================================================
+env:
+  # -- Let Helm own the application .env (writes /data/.env_config via init container).
+  manage: false
+  # -- Use a pre-existing Secret instead of rendering one. The Secret must
+  # contain a key named `.env_config` with the full env file.
+  existingSecret: ""
+  # -- When manage=true and no existingSecret, these key/value pairs are
+  # rendered into the .env file. Provide a real APP_KEY here or via existingSecret.
+  # Keep DB_CONNECTION=sqlite — Savvy is SQLite-only by design.
+  values:
+    APP_NAME: Savvy
+    APP_ENV: production
+    APP_DEBUG: "false"
+    APP_URL: http://localhost
+    # APP_KEY: "base64:CHANGE_ME"   # generate with: php artisan key:generate --show
+    LOG_CHANNEL: stderr
+    LOG_LEVEL: warning
+    DB_CONNECTION: sqlite
+    DB_DATABASE: /data/database.sqlite
+    SESSION_DRIVER: file
+    CACHE_STORE: file
+    QUEUE_CONNECTION: database
+    BACKUP_PATH: /data/backups
+  # -- Seed policy for the managed .env on the volume: `always` (Helm wins on
+  # every start) or `ifNotPresent` (only seed an empty volume).
+  seedPolicy: always
+
+# -- Extra environment variables injected directly into the container
+# (independent of the .env file). Useful for runtime-only overrides.
+extraEnv: []
+#  - name: PHP_OPCACHE_ENABLE
+#    value: "1"
+
+# -- Extra env sourced from existing ConfigMaps/Secrets.
+extraEnvFrom: []
+#  - secretRef:
+#      name: savvy-extra
+
+# -- Port the application container listens on (nginx in the image binds :80).
+containerPort: 80
+
+# =============================================================================
+# Scheduling, security & resources
+# =============================================================================
+
+# -- Deployment update strategy. Must stay Recreate: a single pod owns the
+# single-attach ReadWriteOnce volume, so a rolling update would deadlock.
+updateStrategy:
+  type: Recreate
+
+# -- Pod-level security context. uid/gid 82 == www-data in the alpine image.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 82
+  runAsGroup: 82
+  fsGroup: 82
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container-level security context. NET_BIND_SERVICE lets non-root nginx
+# bind to :80 (the image sets the file capability accordingly).
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 82
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+# -- Liveness probe — /livez reports process health (does not touch the DB).
+livenessProbe:
+  httpGet:
+    path: /livez
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# -- Readiness probe — /readyz verifies DB connectivity and migration schema.
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# -- Startup probe — gives the first-boot migrate+seed time before liveness kicks in.
+startupProbe:
+  httpGet:
+    path: /livez
+    port: http
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 60
+
+# -- Extra init containers (rendered after the chart's own env-seed init container).
+initContainers: []
+# -- Extra sidecar containers.
+extraContainers: []
+# -- Extra volumes.
+extraVolumes: []
+# -- Extra volume mounts for the app container.
+extraVolumeMounts: []
+
+# -- Node selector for pod assignment.
+nodeSelector: {}
+# -- Tolerations for pod assignment.
+tolerations: []
+# -- Affinity rules for pod assignment.
+affinity: {}
+# -- Topology spread constraints.
+topologySpreadConstraints: []
+# -- Pod priority class name.
+priorityClassName: ""
+# -- Termination grace period. Must exceed queue worker stopwaitsecs (60s).
+terminationGracePeriodSeconds: 90
+
+# -- Extra pod annotations (e.g. for config-change rollouts or vault agents).
+podAnnotations: {}
+# -- Extra pod labels.
+podLabels: {}
+
+# =============================================================================
+# Persistence (SQLite database, generated .env, backups)
+# =============================================================================
+persistence:
+  # -- Enable persistent storage for /data. Disable only when the app is fully
+  # externalized (external DB) and statelessness is acceptable.
+  enabled: true
+  # -- Use an existing PVC instead of creating one.
+  existingClaim: ""
+  # -- StorageClass. Empty uses the cluster default; "-" disables dynamic provisioning.
+  storageClass: ""
+  # -- Access modes. ReadWriteOnce is correct for the single-writer SQLite topology.
+  accessModes:
+    - ReadWriteOnce
+  # -- Requested volume size.
+  size: 2Gi
+  # -- Annotations for the PVC (e.g. backup tooling).
+  annotations: {}
+  # -- Mount path inside the container (matches the image's VOLUME /data).
+  mountPath: /data
+  # -- Keep the PVC on `helm uninstall` (Helm resource policy).
+  retain: true
+
+# =============================================================================
+# Service / Ingress
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 80
+  # -- Named target port on the pod.
+  targetPort: http
+  # -- NodePort to request when type=NodePort.
+  nodePort: ""
+  annotations: {}
+  # -- Session affinity (ClientIP recommended when running >1 replica with
+  # file/db sessions to keep a user pinned).
+  sessionAffinity: None
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # nginx.ingress.kubernetes.io/proxy-body-size: "16m"
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: savvy.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: savvy-tls
+  #    hosts:
+  #      - savvy.local
+
+# -- Gateway API route (gateway.networking.k8s.io/v1). Modern alternative to
+# Ingress. Enable EITHER ingress OR httpRoute, never both. TLS and listener
+# config live on the referenced Gateway, not here.
+httpRoute:
+  enabled: false
+  annotations: {}
+  # -- Gateway(s) this route attaches to.
+  parentRefs:
+    - name: gateway
+      # namespace: gateway-system
+      # sectionName: https
+  # -- Hostnames served by this route.
+  hostnames:
+    - savvy.local
+  # -- Custom rules. Empty renders a single PathPrefix "/" rule to the Service.
+  # Values are run through `tpl`, so Helm templating is allowed here.
+  rules: []
+
+# =============================================================================
+# Availability, network policy, observability
+# =============================================================================
+# -- PodDisruptionBudget. With a single pod this only protects against
+# voluntary disruptions blocking node drains; leave disabled unless you
+# explicitly want to gate drains on a manual restart.
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+networkPolicy:
+  # -- Create a default-deny-ingress NetworkPolicy scoped to this app.
+  enabled: false
+  # -- Ingress rules. Empty `from` with the policy enabled means deny-all-ingress
+  # except what you list here.
+  ingress: []
+    # - from:
+    #     - namespaceSelector:
+    #         matchLabels:
+    #           kubernetes.io/metadata.name: ingress-nginx
+    #   ports:
+    #     - protocol: TCP
+    #       port: 80
+  # -- Egress rules. Empty disables egress restrictions (egress allowed).
+  egress: []
+
+metrics:
+  serviceMonitor:
+    # -- Create a Prometheus Operator ServiceMonitor. The base image does not
+    # expose a /metrics endpoint by default — enable only if you add an exporter
+    # sidecar (extraContainers) that publishes Prometheus metrics.
+    enabled: false
+    namespace: ""
+    labels: {}
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+    port: http
+
+# -- Helm test pod settings (`helm test`).
+tests:
+  enabled: true
+  image:
+    repository: curlimages/curl
+    tag: "8.11.1"

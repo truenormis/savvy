@@ -19,8 +19,206 @@ class CsvParser
      */
     public function parse(UploadedFile $file): array
     {
-        $content = file_get_contents($file->getRealPath());
+        return $this->parseString((string) file_get_contents($file->getRealPath()));
+    }
 
+    /**
+     * Inspect the head of a CSV stream without loading the whole file.
+     *
+     * @param  resource  $stream
+     */
+    public function inspect($stream, int $sampleSize = 50): array
+    {
+        $lines = [];
+        $first = true;
+        $complete = true;
+
+        while (count($lines) < $sampleSize) {
+            $line = fgets($stream);
+
+            if ($line === false) {
+                break;
+            }
+
+            if ($first) {
+                $line = $this->removeBom($line);
+                $first = false;
+            }
+
+            $line = rtrim($line, "\r\n");
+
+            if ($line !== '') {
+                $lines[] = $line;
+            }
+        }
+
+        if (count($lines) >= $sampleSize) {
+            $complete = false;
+        }
+
+        $encoding = mb_detect_encoding(implode("\n", $lines), ['UTF-8', 'Windows-1251', 'ISO-8859-1', 'Windows-1252'], true) ?: 'UTF-8';
+        $lines = array_map(fn ($line) => $this->toUtf8Line($line, $encoding), $lines);
+
+        if ($lines === []) {
+            return [
+                'headers' => [],
+                'rows' => [],
+                'detected_formats' => ['date_format' => 'ISO', 'amount_format' => 'US', 'has_header' => false, 'delimiter' => ','],
+                'suggested_mapping' => [],
+                'delimiter' => ',',
+                'has_header' => false,
+                'encoding' => $encoding,
+                'avg_line_bytes' => 0,
+                'complete' => true,
+            ];
+        }
+
+        $delimiter = $this->formatDetector->detectDelimiter(implode("\n", $lines));
+        $rows = array_map(fn ($line) => array_map('trim', str_getcsv($line, $delimiter, '"', '\\')), $lines);
+
+        $hasHeader = $this->formatDetector->detectHasHeader($rows[0] ?? [], $rows[1] ?? []);
+        $headers = $hasHeader ? $rows[0] : $this->generateDefaultHeaders(count($rows[0]));
+        $dataRows = $hasHeader ? array_slice($rows, 1) : $rows;
+
+        $detectedFormats = $this->detectFormats(array_slice($dataRows, 0, 20), $headers);
+        $detectedFormats['has_header'] = $hasHeader;
+        $detectedFormats['delimiter'] = $delimiter;
+
+        $avgLineBytes = (int) round(array_sum(array_map('strlen', $lines)) / max(1, count($lines))) + 1;
+
+        return [
+            'headers' => $headers,
+            'rows' => $dataRows,
+            'detected_formats' => $detectedFormats,
+            'suggested_mapping' => $this->formatDetector->suggestMapping($headers),
+            'delimiter' => $delimiter,
+            'has_header' => $hasHeader,
+            'encoding' => $encoding,
+            'avg_line_bytes' => $avgLineBytes,
+            'complete' => $complete,
+        ];
+    }
+
+    /**
+     * Stream data rows from a CSV stream, invoking the callback per row.
+     *
+     * @param  resource  $stream
+     * @param  array{delimiter:string,has_header:bool,encoding:string}  $meta
+     */
+    public function each($stream, array $meta, callable $callback, ?int $limit = null): int
+    {
+        $delimiter = $meta['delimiter'] ?? ',';
+        $hasHeader = $meta['has_header'] ?? false;
+        $encoding = $meta['encoding'] ?? 'UTF-8';
+
+        $first = true;
+        $headerHandled = false;
+        $count = 0;
+
+        while (($line = fgets($stream)) !== false) {
+            if ($first) {
+                $line = $this->removeBom($line);
+                $first = false;
+            }
+
+            $line = rtrim($line, "\r\n");
+
+            if ($line === '') {
+                continue;
+            }
+
+            if ($hasHeader && ! $headerHandled) {
+                $headerHandled = true;
+
+                continue;
+            }
+
+            $line = $this->toUtf8Line($line, $encoding);
+            $row = array_map('trim', str_getcsv($line, $delimiter, '"', '\\'));
+
+            $callback($row, $count);
+            $count++;
+
+            if ($limit !== null && $count >= $limit) {
+                break;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Stream data rows whose line START falls within the byte range [$start, $end).
+     * A line straddling $end is processed in full by this range; a partial line at
+     * $start belongs to the previous range and is skipped.
+     *
+     * @param  resource  $stream
+     * @param  array{delimiter:string,has_header:bool,encoding:string}  $meta
+     */
+    public function eachRange($stream, array $meta, int $start, int $end, bool $hasHeader, callable $callback): int
+    {
+        $delimiter = $meta['delimiter'] ?? ',';
+        $encoding = $meta['encoding'] ?? 'UTF-8';
+
+        fseek($stream, $start);
+        $pos = $start;
+
+        if ($start > 0) {
+            $pos += strlen((string) fgets($stream));
+        }
+
+        $first = ($start === 0);
+        $skipHeader = ($start === 0 && $hasHeader);
+        $count = 0;
+
+        while ($pos < $end) {
+            $line = fgets($stream);
+
+            if ($line === false) {
+                break;
+            }
+
+            $pos += strlen($line);
+
+            if ($first) {
+                $line = $this->removeBom($line);
+                $first = false;
+            }
+
+            $line = rtrim($line, "\r\n");
+
+            if ($line === '') {
+                continue;
+            }
+
+            if ($skipHeader) {
+                $skipHeader = false;
+
+                continue;
+            }
+
+            $line = $this->toUtf8Line($line, $encoding);
+            $row = array_map('trim', str_getcsv($line, $delimiter, '"', '\\'));
+
+            $callback($row, $count);
+            $count++;
+        }
+
+        return $count;
+    }
+
+    private function toUtf8Line(string $line, string $encoding): string
+    {
+        return $encoding && $encoding !== 'UTF-8'
+            ? mb_convert_encoding($line, 'UTF-8', $encoding)
+            : $line;
+    }
+
+    /**
+     * Parse raw CSV content and return structured data
+     */
+    public function parseString(string $content): array
+    {
         // Detect and handle BOM
         $content = $this->removeBom($content);
 
@@ -162,7 +360,7 @@ class CsvParser
         $headers = [];
 
         for ($i = 0; $i < $count; $i++) {
-            $headers[] = 'Column ' . ($i + 1);
+            $headers[] = 'Column '.($i + 1);
         }
 
         return $headers;

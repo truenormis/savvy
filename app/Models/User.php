@@ -12,6 +12,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_sso_only',
         'role',
         'two_factor_secret',
         'two_factor_enabled',
@@ -28,6 +29,7 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'role' => UserRole::class,
+            'is_sso_only' => 'boolean',
             'two_factor_enabled' => 'boolean',
             'two_factor_confirmed' => 'boolean',
         ];
@@ -36,6 +38,26 @@ class User extends Authenticatable
     public function twoFactorRecoveryCodes(): HasMany
     {
         return $this->hasMany(TwoFactorRecoveryCode::class);
+    }
+
+    public function identities(): HasMany
+    {
+        return $this->hasMany(UserIdentity::class);
+    }
+
+    public function authSessions(): HasMany
+    {
+        return $this->hasMany(AuthSession::class);
+    }
+
+    public function webauthnCredentials(): HasMany
+    {
+        return $this->hasMany(WebauthnCredential::class);
+    }
+
+    public function hasPasskeys(): bool
+    {
+        return $this->webauthnCredentials()->exists();
     }
 
     public function hasTwoFactorEnabled(): bool

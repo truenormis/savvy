@@ -46,7 +46,7 @@ class RecurringTransactionService
 
             $recurring = RecurringTransaction::create($data);
 
-            if (!empty($data['tag_ids'])) {
+            if (! empty($data['tag_ids'])) {
                 $recurring->tags()->sync($data['tag_ids']);
             }
 
@@ -180,7 +180,7 @@ class RecurringTransactionService
         if ($frequency === RecurringFrequency::Monthly && isset($data['day_of_month'])) {
             $dayOfMonth = min((int) $data['day_of_month'], $date->daysInMonth);
             $date = $date->day($dayOfMonth);
-            if ($date->isPast() && !$date->isToday()) {
+            if ($date->isPast() && ! $date->isToday()) {
                 $date = $date->addMonth()->day(min((int) $data['day_of_month'], $date->daysInMonth));
             }
         }
@@ -228,7 +228,7 @@ class RecurringTransactionService
         $fields = ['frequency', 'interval', 'day_of_week', 'day_of_month', 'start_date'];
 
         foreach ($fields as $field) {
-            if (array_key_exists($field, $data) && $recurring->$field != $data[$field]) {
+            if (array_key_exists($field, $data) && $data[$field] != $recurring->$field) {
                 return true;
             }
         }

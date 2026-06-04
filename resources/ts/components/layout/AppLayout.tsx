@@ -3,10 +3,14 @@ import { AppSidebar } from './Sidebar'
 import { Header } from './Header'
 import { ReadOnlyBanner } from './ReadOnlyBanner'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { useUiStore } from '@/stores/ui'
 
 export function AppLayout() {
+    const sidebarOpen = useUiStore((state) => state.sidebarOpen)
+    const setSidebarOpen = useUiStore((state) => state.setSidebarOpen)
+
     return (
-        <SidebarProvider>
+        <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <AppSidebar />
             <SidebarInset>
                 <ReadOnlyBanner />

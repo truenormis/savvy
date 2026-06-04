@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -247,7 +247,13 @@ export function ExpensePaceChart({ filters }: ExpensePaceChartProps) {
         return data.months.map(processMonthData)
     }, [data])
 
-    const currentMonthData = monthsData?.[selectedMonth]
+    useEffect(() => {
+        if (monthsData?.length) {
+            setSelectedMonth(monthsData.length - 1)
+        }
+    }, [data])
+
+    const currentMonthData = monthsData?.[Math.min(selectedMonth, (monthsData?.length ?? 1) - 1)]
     const chartOption = useMemo(() => {
         if (!currentMonthData || !data) return null
         return buildChartOption(currentMonthData, data.currency)

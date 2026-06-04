@@ -1,59 +1,53 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useAuthStore } from '@/stores/auth'
+import { useQuery } from '@tanstack/react-query'
+import { useAuthStore, useAuthLoading, useIsAuthenticated } from '@/stores/auth'
 import { authApi } from '@/api'
 import { Loader2 } from 'lucide-react'
 
+function FullScreenLoader() {
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+    )
+}
+
 export function AuthProvider() {
-    const { isLoading, isAuthenticated, checkAuth } = useAuthStore()
     const location = useLocation()
-    const [needsRegistration, setNeedsRegistration] = useState<boolean | null>(null)
-    const [statusChecked, setStatusChecked] = useState(false)
+    const isLoading = useAuthLoading()
+    const isAuthenticated = useIsAuthenticated()
+    const checkAuth = useAuthStore((state) => state.checkAuth)
+
+    // Cached + request-deduped: survives StrictMode double-mount and child
+    // navigations without re-hitting the network or flashing the spinner.
+    const { data: status, isPending: statusPending } = useQuery({
+        queryKey: ['auth', 'status'],
+        queryFn: authApi.status,
+        staleTime: Infinity,
+        retry: false,
+    })
+
+    const needsRegistration = status?.needs_registration ?? false
 
     useEffect(() => {
-        const checkStatus = async () => {
-            try {
-                const status = await authApi.status()
-                setNeedsRegistration(status.needs_registration)
-            } catch {
-                setNeedsRegistration(false)
-            } finally {
-                setStatusChecked(true)
-            }
-        }
-        checkStatus()
-    }, [])
-
-    useEffect(() => {
-        if (statusChecked && !needsRegistration) {
+        if (!statusPending && !needsRegistration) {
             checkAuth()
         }
-    }, [statusChecked, needsRegistration, checkAuth])
+    }, [statusPending, needsRegistration, checkAuth])
 
-    // Still checking status
-    if (!statusChecked) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="size-8 animate-spin text-muted-foreground" />
-            </div>
-        )
+    if (statusPending) {
+        return <FullScreenLoader />
     }
 
-    // Needs setup - redirect to setup wizard
     if (needsRegistration) {
         return <Navigate to="/setup" state={{ from: location }} replace />
     }
 
-    // Loading auth state
     if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="size-8 animate-spin text-muted-foreground" />
-            </div>
-        )
+        return <FullScreenLoader />
     }
 
-    // Not authenticated - redirect to login
     if (!isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />
     }

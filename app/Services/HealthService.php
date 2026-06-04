@@ -10,9 +10,7 @@ class HealthService
     /**
      * @param  iterable<HealthCheck>  $checks
      */
-    public function __construct(private readonly iterable $checks)
-    {
-    }
+    public function __construct(private readonly iterable $checks) {}
 
     public function liveness(): HealthReportData
     {

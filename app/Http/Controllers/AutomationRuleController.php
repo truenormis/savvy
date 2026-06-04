@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Enums\TriggerType;
 use App\Http\Requests\AutomationRuleRequest;
-use App\Http\Resources\AutomationRuleResource;
 use App\Http\Resources\AutomationRuleLogResource;
+use App\Http\Resources\AutomationRuleResource;
 use App\Models\AutomationRule;
 use App\Models\Transaction;
 use App\Services\AutomationService;
@@ -59,7 +59,7 @@ class AutomationRuleController extends Controller
     public function toggle(AutomationRule $automationRule): AutomationRuleResource
     {
         $automationRule->update([
-            'is_active' => !$automationRule->is_active,
+            'is_active' => ! $automationRule->is_active,
         ]);
 
         return new AutomationRuleResource($automationRule);

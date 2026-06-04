@@ -11,7 +11,10 @@
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
-        "spomky-labs/otphp": "^11.4"
+        "league/flysystem-aws-s3-v3": "^3.0",
+        "onelogin/php-saml": "^4.0",
+        "spomky-labs/otphp": "^11.4",
+        "web-auth/webauthn-lib": "^5.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

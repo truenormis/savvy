@@ -12,21 +12,24 @@ interface WrappedResponse<T> {
     }
 }
 
+// Soft, router-driven sign-out: the auth store registers this so a 401 never
+// hard-reloads the page. The frontend holds no token and never refreshes.
+let onUnauthorized: (() => void) | null = null
+
+export const setOnUnauthorized = (handler: () => void) => {
+    onUnauthorized = handler
+}
+
 const createApiClient = (baseURL: string): AxiosInstance => {
     const client = axios.create({
         baseURL,
         timeout: 10000,
+        withCredentials: true,
+        xsrfCookieName: 'svy_csrf',
+        xsrfHeaderName: 'X-CSRF-Token',
         headers: {
             'Content-Type': 'application/json',
         },
-    })
-
-    client.interceptors.request.use((config) => {
-        const token = localStorage.getItem('auth_token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
     })
 
     client.interceptors.response.use(
@@ -34,13 +37,8 @@ const createApiClient = (baseURL: string): AxiosInstance => {
         (error) => {
             const message = error.response?.data?.message || 'An error occurred'
 
-            // Handle 401 - clear token and redirect to login
             if (error.response?.status === 401) {
-                localStorage.removeItem('auth_token')
-                // Only redirect if not already on login page
-                if (!window.location.pathname.includes('/login')) {
-                    window.location.href = '/login'
-                }
+                onUnauthorized?.()
                 return Promise.reject(error)
             }
 

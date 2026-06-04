@@ -30,11 +30,11 @@ class BudgetService
 
         $budget = Budget::create($data);
 
-        if (!empty($categoryIds)) {
+        if (! empty($categoryIds)) {
             $budget->categories()->attach($categoryIds);
         }
 
-        if (!empty($tagIds)) {
+        if (! empty($tagIds)) {
             $budget->tags()->attach($tagIds);
         }
 
@@ -131,7 +131,7 @@ class BudgetService
             ->whereBetween('transactions.date', [$startDate, $endDate]);
 
         // Filter by categories if not global
-        if (!$budget->is_global) {
+        if (! $budget->is_global) {
             $categoryIds = $budget->categories->pluck('id')->toArray();
             if (empty($categoryIds)) {
                 return 0;
@@ -141,7 +141,7 @@ class BudgetService
 
         // Filter by tags if budget has tags attached
         $tagIds = $budget->tags->pluck('id')->toArray();
-        if (!empty($tagIds)) {
+        if (! empty($tagIds)) {
             $query->whereExists(function ($subQuery) use ($tagIds) {
                 $subQuery->select(DB::raw(1))
                     ->from('transaction_tag')

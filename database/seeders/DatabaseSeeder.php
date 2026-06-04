@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             CurrencySeeder::class,
             CategorySeeder::class,
             TagSeeder::class,
+            DemoSeeder::class,
         ]);
     }
 }

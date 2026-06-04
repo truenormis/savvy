@@ -47,7 +47,7 @@ class NetWorthReportService
             ];
         }
 
-        usort($accounts, fn($a, $b) => $b['balance'] <=> $a['balance']);
+        usort($accounts, fn ($a, $b) => $b['balance'] <=> $a['balance']);
 
         return [
             'current' => round($currentTotal, 2),
@@ -93,12 +93,12 @@ class NetWorthReportService
             ->regularAccounts()
             ->with('currency');
 
-        if (!empty($filters->accountIds)) {
+        if (! empty($filters->accountIds)) {
             $accountsQuery->whereIn('id', $filters->accountIds);
         }
 
         $accounts = $accountsQuery->get();
 
-        return $this->accountBalanceRepository->getBalancesAtDate($accounts, $date->toDateString());
+        return $this->accountBalanceRepository->getBalancesAtDate($accounts, $date->copy()->endOfDay()->toDateTimeString());
     }
 }

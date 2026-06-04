@@ -17,7 +17,7 @@ class TransactionQueryBuilder
 
     public static function make(): self
     {
-        return new self();
+        return new self;
     }
 
     public function withRelations(): self
@@ -51,11 +51,11 @@ class TransactionQueryBuilder
             $this->query->where('category_id', $filters->categoryId);
         }
 
-        if (!empty($filters->categoryIds)) {
+        if (! empty($filters->categoryIds)) {
             $this->query->whereIn('category_id', $filters->categoryIds);
         }
 
-        if (!empty($filters->tagIds)) {
+        if (! empty($filters->tagIds)) {
             $this->query->whereHas('tags', function ($q) use ($filters) {
                 $q->whereIn('tags.id', $filters->tagIds);
             });
@@ -91,7 +91,7 @@ class TransactionQueryBuilder
             $this->query
                 ->join('accounts', 'transactions.account_id', '=', 'accounts.id')
                 ->join('currencies', 'accounts.currency_id', '=', 'currencies.id')
-                ->orderByRaw('transactions.amount * currencies.rate ' . ($filters->sortDirection === 'asc' ? 'ASC' : 'DESC'))
+                ->orderByRaw('transactions.amount * currencies.rate '.($filters->sortDirection === 'asc' ? 'ASC' : 'DESC'))
                 ->select('transactions.*');
         } else {
             $this->query->orderBy($filters->sortBy, $filters->sortDirection);

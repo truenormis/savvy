@@ -14,8 +14,8 @@ class TransactionRepository
         $query = $this->baseQuery()
             ->where('transactions.type', $type)
             ->whereBetween('transactions.date', [
-                $dateRange['start']->toDateString(),
-                $dateRange['end']->toDateString(),
+                $dateRange['start']->toDateTimeString(),
+                $dateRange['end']->toDateTimeString(),
             ]);
 
         $this->applyFilters($query, $filters);
@@ -32,8 +32,8 @@ class TransactionRepository
             ->where('transactions.type', $type)
             ->whereNotNull('transactions.category_id')
             ->whereBetween('transactions.date', [
-                $dateRange['start']->toDateString(),
-                $dateRange['end']->toDateString(),
+                $dateRange['start']->toDateTimeString(),
+                $dateRange['end']->toDateTimeString(),
             ]);
 
         $this->applyFilters($query, $filters);
@@ -49,7 +49,7 @@ class TransactionRepository
             ->groupBy('categories.id', 'categories.name', 'categories.icon', 'categories.color')
             ->orderByDesc('total')
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'id' => $row->id,
                 'name' => $row->name,
                 'icon' => $row->icon ?? 'circle',
@@ -64,8 +64,8 @@ class TransactionRepository
         $query = $this->baseQuery()
             ->where('transactions.type', $type)
             ->whereBetween('transactions.date', [
-                $startDate->toDateString(),
-                $endDate->toDateString(),
+                $startDate->toDateTimeString(),
+                $endDate->toDateTimeString(),
             ]);
 
         $this->applyFilters($query, $filters);
@@ -101,8 +101,8 @@ class TransactionRepository
         $query = $this->baseQuery()
             ->where('transactions.type', $type)
             ->whereBetween('transactions.date', [
-                $dateRange['start']->toDateString(),
-                $dateRange['end']->toDateString(),
+                $dateRange['start']->toDateTimeString(),
+                $dateRange['end']->toDateTimeString(),
             ]);
 
         if ($categoryId !== null) {
@@ -128,8 +128,8 @@ class TransactionRepository
             ->leftJoin('categories', 'transactions.category_id', '=', 'categories.id')
             ->where('transactions.type', $type)
             ->whereBetween('transactions.date', [
-                $dateRange['start']->toDateString(),
-                $dateRange['end']->toDateString(),
+                $dateRange['start']->toDateTimeString(),
+                $dateRange['end']->toDateTimeString(),
             ]);
 
         $this->applyFilters($query, $filters);
@@ -150,7 +150,7 @@ class TransactionRepository
             ->orderByDesc('converted_amount')
             ->limit($limit)
             ->get()
-            ->map(fn($t) => [
+            ->map(fn ($t) => [
                 'id' => $t->id,
                 'description' => $t->description,
                 'amount' => round((float) $t->converted_amount, 2),
@@ -178,15 +178,15 @@ class TransactionRepository
 
     private function applyFilters($query, ReportFilterData $filters): void
     {
-        if (!empty($filters->accountIds)) {
+        if (! empty($filters->accountIds)) {
             $query->whereIn('transactions.account_id', $filters->accountIds);
         }
 
-        if (!empty($filters->categoryIds)) {
+        if (! empty($filters->categoryIds)) {
             $query->whereIn('transactions.category_id', $filters->categoryIds);
         }
 
-        if (!empty($filters->tagIds)) {
+        if (! empty($filters->tagIds)) {
             $query->whereExists(function ($subQuery) use ($filters) {
                 $subQuery->select(DB::raw(1))
                     ->from('transaction_tag')

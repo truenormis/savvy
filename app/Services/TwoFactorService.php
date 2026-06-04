@@ -2,15 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Models\TwoFactorRecoveryCode;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use OTPHP\TOTP;
 
 class TwoFactorService
 {
     private const ISSUER = 'Savvy';
+
     private const RECOVERY_CODE_COUNT = 8;
+
     // Unambiguous alphanumeric characters (no 0, 1, i, l, o to avoid confusion)
     private const RECOVERY_CODE_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789';
 
@@ -43,11 +45,11 @@ class TwoFactorService
      */
     public function confirm(User $user, string $code): ?array
     {
-        if (!$user->two_factor_enabled || $user->two_factor_confirmed) {
+        if (! $user->two_factor_enabled || $user->two_factor_confirmed) {
             return null;
         }
 
-        if (!$this->verify($user, $code)) {
+        if (! $this->verify($user, $code)) {
             return null;
         }
 
@@ -62,12 +64,12 @@ class TwoFactorService
      */
     public function disable(User $user, string $code): bool
     {
-        if (!$user->hasTwoFactorEnabled()) {
+        if (! $user->hasTwoFactorEnabled()) {
             return false;
         }
 
         // Verify with TOTP code or recovery code
-        if (!$this->verify($user, $code) && !$this->verifyRecoveryCode($user, $code)) {
+        if (! $this->verify($user, $code) && ! $this->verifyRecoveryCode($user, $code)) {
             return false;
         }
 
@@ -88,7 +90,7 @@ class TwoFactorService
      */
     public function verify(User $user, string $code): bool
     {
-        if (!$user->two_factor_secret) {
+        if (! $user->two_factor_secret) {
             return false;
         }
 
@@ -116,6 +118,7 @@ class TwoFactorService
         foreach ($recoveryCodes as $recoveryCode) {
             if (Hash::check($normalizedCode, $recoveryCode->code)) {
                 $recoveryCode->markAsUsed();
+
                 return true;
             }
         }
@@ -128,12 +131,12 @@ class TwoFactorService
      */
     public function regenerateRecoveryCodes(User $user, string $code): ?array
     {
-        if (!$user->hasTwoFactorEnabled()) {
+        if (! $user->hasTwoFactorEnabled()) {
             return null;
         }
 
         // Require TOTP code verification
-        if (!$this->verify($user, $code)) {
+        if (! $this->verify($user, $code)) {
             return null;
         }
 
@@ -179,7 +182,7 @@ class TwoFactorService
             $part2 .= $chars[random_int(0, $length - 1)];
         }
 
-        return $part1 . '-' . $part2;
+        return $part1.'-'.$part2;
     }
 
     /**
@@ -197,6 +200,6 @@ class TwoFactorService
      */
     public function needsConfirmation(User $user): bool
     {
-        return $user->two_factor_enabled && !$user->two_factor_confirmed;
+        return $user->two_factor_enabled && ! $user->two_factor_confirmed;
     }
 }

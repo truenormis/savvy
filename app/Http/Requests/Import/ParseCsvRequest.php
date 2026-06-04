@@ -14,22 +14,15 @@ class ParseCsvRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => [
-                'required',
-                'file',
-                'mimes:csv,txt',
-                'max:5120', // 5MB
-            ],
+            'upload_id' => ['required', 'string', 'uuid', 'exists:uploads,id'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'file.required' => 'Please select a CSV file to upload.',
-            'file.file' => 'The uploaded file is invalid.',
-            'file.mimes' => 'The file must be a CSV file.',
-            'file.max' => 'The file size must not exceed 5MB.',
+            'upload_id.required' => 'An uploaded file is required to start an import.',
+            'upload_id.exists' => 'The uploaded file could not be found.',
         ];
     }
 }

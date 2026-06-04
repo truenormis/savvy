@@ -26,3 +26,8 @@ Thumbs.db
 .vite
 
 /.bin
+
+/CLAUDE.md
+
+# Large local test fixture
+transactions-500mb.csv

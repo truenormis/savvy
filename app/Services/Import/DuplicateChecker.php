@@ -3,11 +3,11 @@
 namespace App\Services\Import;
 
 use App\Models\Transaction;
-use Illuminate\Support\Collection;
 
 class DuplicateChecker
 {
     private array $existingHashes = [];
+
     private array $importHashes = [];
 
     /**
@@ -99,7 +99,7 @@ class DuplicateChecker
         // Round amount to 2 decimal places for comparison
         $normalizedAmount = round($amount, 2);
 
-        return md5("{$normalizedDate}|{$normalizedAmount}|{$normalizedDescription}");
+        return md5("{$normalizedDate}|{$normalizedAmount}|{$normalizedDescription}", true);
     }
 
     /**

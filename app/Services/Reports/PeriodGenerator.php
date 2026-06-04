@@ -25,7 +25,7 @@ class PeriodGenerator
                     $weekStart = $current->copy()->startOfWeek(Carbon::SUNDAY);
                     $periods[] = [
                         'key' => $weekStart->toDateString(),
-                        'label' => 'Week ' . $weekStart->format('M j'),
+                        'label' => 'Week '.$weekStart->format('M j'),
                     ];
                     $current->addWeek();
                     break;
@@ -37,6 +37,14 @@ class PeriodGenerator
                     ];
                     $current->addMonth();
                     break;
+
+                default:
+                    $periods[] = [
+                        'key' => $current->toDateString(),
+                        'label' => $current->format('M j'),
+                    ];
+                    $current->addDay();
+                    break;
             }
         }
 
@@ -46,9 +54,9 @@ class PeriodGenerator
     public function getSqlFormat(string $groupBy): string
     {
         return match ($groupBy) {
-            'day' => "DATE(transactions.date)",
             'week' => "DATE(transactions.date, '-' || strftime('%w', transactions.date) || ' days')",
             'month' => "DATE(transactions.date, 'start of month')",
+            default => 'DATE(transactions.date)',
         };
     }
 
@@ -73,7 +81,7 @@ class PeriodGenerator
     public function getPeriodLabel(Carbon $current, string $groupBy): string
     {
         return match ($groupBy) {
-            'week' => 'W' . $current->weekOfYear . ' ' . $current->format("M 'y"),
+            'week' => 'W'.$current->weekOfYear.' '.$current->format("M 'y"),
             'month' => $current->format("M 'y"),
             default => $current->format('M j'),
         };

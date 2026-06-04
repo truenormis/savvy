@@ -2,12 +2,11 @@
 
 namespace App\Services\Import;
 
-use App\DTOs\TransactionData;
-use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\Currency;
 use App\Models\Tag;
-use App\Services\TransactionService;
+use App\Models\Upload;
+use App\Services\Upload\UploadManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +16,7 @@ class CsvImportService
         private CsvParser $csvParser,
         private FormatDetector $formatDetector,
         private DuplicateChecker $duplicateChecker,
-        private TransactionService $transactionService,
+        private UploadManager $uploadManager,
     ) {}
 
     /**
@@ -28,10 +27,60 @@ class CsvImportService
         $importId = $this->csvParser->generateImportId();
         $parsed = $this->csvParser->parse($file);
 
-        // Store full data in cache
         $this->csvParser->storeInCache($importId, $parsed);
 
-        // Return only preview data
+        return $this->previewPayload($importId, $parsed);
+    }
+
+    /**
+     * Inspect the head of a completed multipart upload (constant memory, no full read)
+     */
+    public function parseUpload(Upload $upload, string $importId): array
+    {
+        $stream = $this->uploadManager->readStream($upload);
+
+        try {
+            $inspection = $this->csvParser->inspect($stream);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
+        return [
+            'import_id' => $importId,
+            'headers' => $inspection['headers'],
+            'preview_rows' => array_slice($inspection['rows'], 0, 10),
+            'total_rows' => $this->estimateRows($inspection, $upload),
+            'detected_formats' => $inspection['detected_formats'],
+            'suggested_mapping' => $inspection['suggested_mapping'],
+            'parse_meta' => [
+                'delimiter' => $inspection['delimiter'],
+                'has_header' => $inspection['has_header'],
+                'encoding' => $inspection['encoding'],
+            ],
+        ];
+    }
+
+    private function estimateRows(array $inspection, Upload $upload): int
+    {
+        if ($inspection['complete']) {
+            return count($inspection['rows']);
+        }
+
+        $avg = $inspection['avg_line_bytes'];
+
+        if (! $avg || ! $upload->size) {
+            return count($inspection['rows']);
+        }
+
+        $estimate = (int) floor($upload->size / $avg) - ($inspection['has_header'] ? 1 : 0);
+
+        return max($estimate, count($inspection['rows']));
+    }
+
+    private function previewPayload(string $importId, array $parsed): array
+    {
         return [
             'import_id' => $importId,
             'headers' => $parsed['headers'],
@@ -43,20 +92,15 @@ class CsvImportService
     }
 
     /**
-     * Preview import results without actually importing
+     * Preview import results by streaming a bounded sample of the upload
      */
-    public function preview(string $importId, array $mapping, array $options): array
+    public function preview(Upload $upload, array $parseMeta, array $mapping, array $options, int $sampleLimit = 2000): array
     {
-        $cached = $this->csvParser->getFromCache($importId);
-
-        if (!$cached) {
-            throw new \RuntimeException('Import session expired. Please upload the file again.');
-        }
-
-        $rows = $cached['rows'];
-
-        // Load existing transactions for duplicate checking
         $this->duplicateChecker->loadExistingTransactions($options['default_account_id']);
+
+        $existingCurrencies = Currency::pluck('id', 'code')->toArray();
+        $existingTagsLower = array_change_key_case(Tag::pluck('id', 'name')->toArray(), CASE_LOWER);
+        $existingCategoriesLower = array_change_key_case(Category::pluck('id', 'name')->toArray(), CASE_LOWER);
 
         $previewTransactions = [];
         $willCreate = 0;
@@ -65,109 +109,71 @@ class CsvImportService
         $currenciesToCreate = [];
         $tagsToCreate = [];
         $categoriesToCreate = [];
+        $maxPreviewRows = 200;
 
-        // Get existing entities for matching
-        $existingCurrencies = Currency::pluck('id', 'code')->toArray();
-        $existingTags = Tag::pluck('id', 'name')->map(fn($id, $name) => $id)->toArray();
-        $existingTagsLower = array_change_key_case($existingTags, CASE_LOWER);
-        $existingCategories = Category::pluck('id', 'name')->toArray();
-        $existingCategoriesLower = array_change_key_case($existingCategories, CASE_LOWER);
+        $stream = $this->uploadManager->readStream($upload);
 
-        foreach ($rows as $index => $row) {
-            $result = $this->processRow($row, $mapping, $options, $index + 1);
+        try {
+            $this->csvParser->each($stream, $parseMeta, function (array $row, int $index) use (
+                $mapping, $options, $existingCurrencies, $existingTagsLower, $existingCategoriesLower, $maxPreviewRows,
+                &$previewTransactions, &$willCreate, &$willSkip, &$hasErrors,
+                &$currenciesToCreate, &$tagsToCreate, &$categoriesToCreate
+            ) {
+                $result = $this->processRow($row, $mapping, $options, $index + 1);
+                $capture = count($previewTransactions) < $maxPreviewRows;
 
-            if ($result['error']) {
-                $hasErrors++;
-                $previewTransactions[] = [
-                    'row' => $index + 1,
-                    'date' => $result['date'],
-                    'type' => $result['type'],
-                    'amount' => $result['amount'],
-                    'description' => $result['description'],
-                    'category' => $result['category'],
-                    'tags' => $result['tags'],
-                    'status' => 'error',
-                    'duplicate_of' => null,
-                    'warnings' => [],
-                    'error' => $result['error'],
-                ];
-                continue;
-            }
+                if ($result['error']) {
+                    $hasErrors++;
+                    if ($capture) {
+                        $previewTransactions[] = $this->previewRow($index, $result, 'error', null, [], $result['error']);
+                    }
 
-            // Check for duplicates
-            $duplicateId = $this->duplicateChecker->isDuplicate(
-                $result['date'],
-                abs($result['amount']),
-                $result['description']
-            );
-
-            if ($duplicateId !== null) {
-                $willSkip++;
-                $previewTransactions[] = [
-                    'row' => $index + 1,
-                    'date' => $result['date'],
-                    'type' => $result['type'],
-                    'amount' => abs($result['amount']),
-                    'description' => $result['description'],
-                    'category' => $result['category'],
-                    'tags' => $result['tags'],
-                    'status' => 'duplicate',
-                    'duplicate_of' => $duplicateId > 0 ? $duplicateId : null,
-                    'warnings' => [],
-                    'error' => null,
-                ];
-                continue;
-            }
-
-            // Mark as importing for batch duplicate detection
-            $this->duplicateChecker->markAsImporting(
-                $result['date'],
-                abs($result['amount']),
-                $result['description']
-            );
-
-            $warnings = [];
-
-            // Check if currency needs to be created
-            if ($result['currency'] && !isset($existingCurrencies[$result['currency']])) {
-                if (!in_array($result['currency'], $currenciesToCreate)) {
-                    $currenciesToCreate[] = $result['currency'];
+                    return;
                 }
-                $warnings[] = "Currency '{$result['currency']}' will be created";
-            }
 
-            // Check if tags need to be created
-            foreach ($result['tags'] as $tag) {
-                $tagLower = strtolower($tag);
-                if (!isset($existingTagsLower[$tagLower]) && !in_array($tag, $tagsToCreate)) {
-                    $tagsToCreate[] = $tag;
-                    $warnings[] = "Tag '{$tag}' will be created";
+                $duplicateId = $this->duplicateChecker->isDuplicate($result['date'], abs($result['amount']), $result['description']);
+
+                if ($duplicateId !== null) {
+                    $willSkip++;
+                    if ($capture) {
+                        $previewTransactions[] = $this->previewRow($index, $result, 'duplicate', $duplicateId > 0 ? $duplicateId : null, [], null);
+                    }
+
+                    return;
                 }
-            }
 
-            // Check if category needs to be created
-            if ($result['category']) {
-                $categoryLower = strtolower($result['category']);
-                if (!isset($existingCategoriesLower[$categoryLower]) && !in_array($result['category'], $categoriesToCreate)) {
+                $this->duplicateChecker->markAsImporting($result['date'], abs($result['amount']), $result['description']);
+
+                $warnings = [];
+
+                if ($result['currency'] && ! isset($existingCurrencies[$result['currency']])) {
+                    if (! in_array($result['currency'], $currenciesToCreate)) {
+                        $currenciesToCreate[] = $result['currency'];
+                    }
+                    $warnings[] = "Currency '{$result['currency']}' will be created";
+                }
+
+                foreach ($result['tags'] as $tag) {
+                    if (! isset($existingTagsLower[strtolower($tag)]) && ! in_array($tag, $tagsToCreate)) {
+                        $tagsToCreate[] = $tag;
+                        $warnings[] = "Tag '{$tag}' will be created";
+                    }
+                }
+
+                if ($result['category'] && ! isset($existingCategoriesLower[strtolower($result['category'])]) && ! in_array($result['category'], $categoriesToCreate)) {
                     $categoriesToCreate[] = $result['category'];
                     $warnings[] = "Category '{$result['category']}' will be created";
                 }
-            }
 
-            $willCreate++;
-            $previewTransactions[] = [
-                'row' => $index + 1,
-                'date' => $result['date'],
-                'type' => $result['type'],
-                'amount' => abs($result['amount']),
-                'description' => $result['description'],
-                'category' => $result['category'],
-                'tags' => $result['tags'],
-                'status' => 'new',
-                'duplicate_of' => null,
-                'warnings' => $warnings,
-                'error' => null,
-            ];
+                $willCreate++;
+                if ($capture) {
+                    $previewTransactions[] = $this->previewRow($index, $result, 'new', null, $warnings, null);
+                }
+            }, $sampleLimit);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
         }
 
         return [
@@ -183,128 +189,236 @@ class CsvImportService
         ];
     }
 
-    /**
-     * Execute the import
-     */
-    public function import(string $importId, array $mapping, array $options): array
+    private function previewRow(int $index, array $result, string $status, ?int $duplicateOf, array $warnings, ?string $error): array
     {
-        $cached = $this->csvParser->getFromCache($importId);
+        return [
+            'row' => $index + 1,
+            'date' => $result['date'],
+            'type' => $result['type'],
+            'amount' => $status === 'error' ? $result['amount'] : abs((float) $result['amount']),
+            'description' => $result['description'],
+            'category' => $result['category'],
+            'tags' => $result['tags'],
+            'status' => $status,
+            'duplicate_of' => $duplicateOf,
+            'warnings' => $warnings,
+            'error' => $error,
+        ];
+    }
 
-        if (!$cached) {
-            throw new \RuntimeException('Import session expired. Please upload the file again.');
+    /**
+     * Pre-create all missing categories/tags single-threaded (race-free) and
+     * return the name->id maps the parallel slices resolve against.
+     *
+     * @return array{categories:array<string,int>,tags:array<string,int>,created_categories:array<int,string>,created_tags:array<int,string>}
+     */
+    public function collectEntities(Upload $upload, array $parseMeta, array $mapping, array $options): array
+    {
+        $categoryMap = Category::pluck('id', 'name')->mapWithKeys(fn ($id, $name) => [strtolower($name) => $id])->toArray();
+        $tagMap = Tag::pluck('id', 'name')->mapWithKeys(fn ($id, $name) => [strtolower($name) => $id])->toArray();
+
+        $createMissingTags = ($options['create_missing_tags'] ?? true) && isset($mapping['tags']);
+        $createMissingCategories = ($options['create_missing_categories'] ?? true) && isset($mapping['category']);
+
+        if (! $createMissingTags && ! $createMissingCategories) {
+            return ['categories' => $categoryMap, 'tags' => $tagMap, 'created_categories' => [], 'created_tags' => []];
         }
 
-        $rows = $cached['rows'];
+        $newCategories = [];
+        $newTags = [];
 
-        // Load existing transactions for duplicate checking
-        $this->duplicateChecker->loadExistingTransactions($options['default_account_id']);
+        $stream = $this->uploadManager->readStream($upload);
+
+        try {
+            $this->csvParser->each($stream, $parseMeta, function (array $row) use (
+                $mapping, $options, $createMissingTags, $createMissingCategories, $categoryMap, $tagMap, &$newCategories, &$newTags
+            ) {
+                if ($createMissingCategories && isset($row[$mapping['category']])) {
+                    $name = trim($row[$mapping['category']]);
+                    $key = strtolower($name);
+
+                    if ($name !== '' && ! isset($categoryMap[$key]) && ! isset($newCategories[$key])) {
+                        $amount = isset($mapping['amount'], $row[$mapping['amount']])
+                            ? $this->formatDetector->parseAmount($row[$mapping['amount']], $options['amount_format'])
+                            : null;
+                        $newCategories[$key] = ['name' => $name, 'type' => ($amount !== null && $amount < 0) ? 'expense' : 'income'];
+                    }
+                }
+
+                if ($createMissingTags && isset($row[$mapping['tags']])) {
+                    foreach (preg_split('/[,;|]/', trim($row[$mapping['tags']])) as $tag) {
+                        $tag = trim($tag);
+                        $key = strtolower($tag);
+                        if ($tag !== '' && ! isset($tagMap[$key]) && ! isset($newTags[$key])) {
+                            $newTags[$key] = $tag;
+                        }
+                    }
+                }
+            });
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
+        $createdCategories = [];
+        $createdTags = [];
+
+        foreach ($newCategories as $key => $data) {
+            $categoryMap[$key] = Category::create([
+                'name' => $data['name'],
+                'type' => $data['type'],
+                'icon' => $data['type'] === 'income' ? '💰' : '📦',
+                'color' => '#6b7280',
+            ])->id;
+            $createdCategories[] = $data['name'];
+        }
+
+        foreach ($newTags as $key => $name) {
+            $tagMap[$key] = Tag::create(['name' => $name])->id;
+            $createdTags[] = $name;
+        }
+
+        return ['categories' => $categoryMap, 'tags' => $tagMap, 'created_categories' => $createdCategories, 'created_tags' => $createdTags];
+    }
+
+    /**
+     * Import one byte-range slice of the upload via chunked bulk inserts.
+     * Entities are resolved read-only against the pre-built maps, so slices
+     * run in parallel without racing. Duplicates are dropped by the DB index.
+     *
+     * @param  array{categories:array<string,int>,tags:array<string,int>}  $entityMaps
+     * @return array{created:int,skipped:int,errors:array<int,array{row:int,message:string}>,processed:int}
+     */
+    public function importSlice(Upload $upload, array $parseMeta, array $mapping, array $options, int $start, int $end, bool $isFirstRange, array $entityMaps, ?callable $onProgress = null): array
+    {
+        DB::connection()->disableQueryLog();
+
+        $accountId = $options['default_account_id'];
+        $categoryMap = $entityMaps['categories'] ?? [];
+        $tagMap = $entityMaps['tags'] ?? [];
+        $hasHeader = $isFirstRange && ($parseMeta['has_header'] ?? false);
 
         $created = 0;
-        $skippedDuplicates = 0;
+        $skipped = 0;
         $errors = [];
-        $createdCurrencies = [];
-        $createdTags = [];
-        $createdCategories = [];
+        $maxErrors = 200;
+        $chunkSize = max(100, (int) config('uploads.import_chunk', 1000));
+        $now = now()->toDateTimeString();
+        $buffer = [];
+        $tagBuffer = [];
 
-        // Pre-create currencies, tags, and categories
-        $tagMap = $this->ensureTagsExist($rows, $mapping, $options);
-        $categoryMap = $this->ensureCategoriesExist($rows, $mapping, $options);
-
-        // Track which entities were actually created
-        $createdTags = array_keys(array_filter($tagMap, fn($data) => $data['created'] ?? false));
-        $createdCategories = array_keys(array_filter($categoryMap, fn($data) => $data['created'] ?? false));
-
-        foreach ($rows as $index => $row) {
-            $result = $this->processRow($row, $mapping, $options, $index + 1);
-
-            if ($result['error']) {
-                $errors[] = ['row' => $index + 1, 'message' => $result['error']];
-                continue;
+        $flush = function () use (&$buffer, &$tagBuffer, &$created, &$skipped, &$errors, $accountId, $onProgress) {
+            if ($buffer === []) {
+                return;
             }
 
-            // Check for duplicates
-            $duplicateId = $this->duplicateChecker->isDuplicate(
-                $result['date'],
-                abs($result['amount']),
-                $result['description']
-            );
+            $attempted = count($buffer);
+            $inserted = DB::table('transactions')->insertOrIgnore($buffer);
+            $created += $inserted;
+            $skipped += $attempted - $inserted;
 
-            if ($duplicateId !== null) {
-                $skippedDuplicates++;
-                continue;
-            }
+            if ($tagBuffer !== []) {
+                $ids = DB::table('transactions')
+                    ->where('account_id', $accountId)
+                    ->whereIn('dedup_hash', array_keys($tagBuffer))
+                    ->pluck('id', 'dedup_hash');
 
-            // Mark as importing
-            $this->duplicateChecker->markAsImporting(
-                $result['date'],
-                abs($result['amount']),
-                $result['description']
-            );
+                $pivot = [];
+                foreach ($tagBuffer as $hash => $tagIds) {
+                    if (! isset($ids[$hash])) {
+                        continue;
+                    }
+                    foreach (array_unique($tagIds) as $tagId) {
+                        $pivot[] = ['transaction_id' => $ids[$hash], 'tag_id' => $tagId];
+                    }
+                }
 
-            // Resolve tag IDs
-            $tagIds = [];
-            foreach ($result['tags'] as $tag) {
-                $tagLower = strtolower($tag);
-                if (isset($tagMap[$tagLower])) {
-                    $tagIds[] = $tagMap[$tagLower]['id'];
+                if ($pivot !== []) {
+                    DB::table('transaction_tag')->insertOrIgnore($pivot);
                 }
             }
 
-            // Resolve category ID
-            $categoryId = null;
-            if ($result['category']) {
-                $categoryLower = strtolower($result['category']);
-                if (isset($categoryMap[$categoryLower])) {
-                    $categoryId = $categoryMap[$categoryLower]['id'];
-                }
+            $buffer = [];
+            $tagBuffer = [];
+
+            if ($onProgress !== null) {
+                $onProgress(['created' => $created, 'skipped' => $skipped, 'errors' => count($errors)]);
             }
+        };
 
-            // Create transaction
-            try {
-                $transactionData = new TransactionData(
-                    type: TransactionType::from($result['type']),
-                    accountId: $options['default_account_id'],
-                    amount: abs($result['amount']),
-                    date: $result['date'],
-                    categoryId: $categoryId,
-                    description: $result['description'],
-                    tagIds: !empty($tagIds) ? $tagIds : null,
-                );
+        $stream = $this->uploadManager->readStream($upload);
 
-                \Log::info('Creating transaction', [
-                    'row' => $index + 1,
+        try {
+            $this->csvParser->eachRange($stream, $parseMeta, $start, $end, $hasHeader, function (array $row, int $index) use (
+                $mapping, $options, $accountId, $maxErrors, $chunkSize, $now, $flush, $categoryMap, $tagMap, &$errors, &$buffer, &$tagBuffer
+            ) {
+                $result = $this->processRow($row, $mapping, $options, $index + 1);
+
+                if ($result['error']) {
+                    if (count($errors) < $maxErrors) {
+                        $errors[] = ['row' => $index + 1, 'message' => $result['error']];
+                    }
+
+                    return;
+                }
+
+                $categoryId = $result['category'] ? ($categoryMap[strtolower($result['category'])] ?? null) : null;
+
+                $tagIds = [];
+                foreach ($result['tags'] as $tag) {
+                    $key = strtolower($tag);
+                    if (isset($tagMap[$key])) {
+                        $tagIds[] = $tagMap[$key];
+                    }
+                }
+
+                $amount = abs((float) $result['amount']);
+                $hash = $this->dedupHash($result['date'], $amount, $result['description']);
+
+                $buffer[] = [
                     'type' => $result['type'],
-                    'amount' => abs($result['amount']),
+                    'account_id' => $accountId,
+                    'category_id' => $categoryId,
+                    'amount' => $amount,
+                    'description' => $result['description'],
                     'date' => $result['date'],
-                    'categoryId' => $categoryId,
-                ]);
+                    'dedup_hash' => $hash,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
 
-                $transaction = $this->transactionService->create($transactionData);
+                if ($tagIds !== []) {
+                    $tagBuffer[$hash] = $tagIds;
+                }
 
-                \Log::info('Transaction created', ['id' => $transaction->id]);
-
-                $created++;
-            } catch (\Throwable $e) {
-                \Log::error('Failed to create transaction', [
-                    'row' => $index + 1,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]);
-                $errors[] = ['row' => $index + 1, 'message' => $e->getMessage()];
+                if (count($buffer) >= $chunkSize) {
+                    $flush();
+                }
+            });
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
             }
         }
 
-        // Clean up cache
-        $this->csvParser->removeFromCache($importId);
+        $flush();
 
         return [
             'created' => $created,
-            'skipped_duplicates' => $skippedDuplicates,
+            'skipped' => $skipped,
             'errors' => $errors,
-            'created_currencies' => $createdCurrencies,
-            'created_tags' => $createdTags,
-            'created_categories' => $createdCategories,
+            'processed' => $created + $skipped + count($errors),
         ];
+    }
+
+    private function dedupHash(string $date, float $amount, ?string $description): string
+    {
+        $normalizedDescription = $description
+            ? strtolower(trim(preg_replace('/\s+/', ' ', $description)))
+            : '';
+
+        return md5($date.'|'.round($amount, 2).'|'.$normalizedDescription);
     }
 
     /**
@@ -328,12 +442,14 @@ class CsvImportService
             $dateValue = $row[$mapping['date']];
             $result['date'] = $this->formatDetector->parseDate($dateValue, $options['date_format']);
 
-            if (!$result['date']) {
+            if (! $result['date']) {
                 $result['error'] = "Invalid date format: '{$dateValue}'";
+
                 return $result;
             }
         } else {
             $result['error'] = 'Date column not mapped or empty';
+
             return $result;
         }
 
@@ -344,11 +460,12 @@ class CsvImportService
 
             if ($result['amount'] === null) {
                 $result['error'] = "Invalid amount format: '{$amountValue}'";
+
                 return $result;
             }
 
             // Determine type based on amount sign if not explicitly mapped
-            if (!isset($mapping['type'])) {
+            if (! isset($mapping['type'])) {
                 if ($result['amount'] < 0) {
                     $result['type'] = 'expense';
                 } elseif ($result['amount'] > 0) {
@@ -359,6 +476,7 @@ class CsvImportService
             }
         } else {
             $result['error'] = 'Amount column not mapped or empty';
+
             return $result;
         }
 
@@ -399,124 +517,5 @@ class CsvImportService
         }
 
         return $result;
-    }
-
-    /**
-     * Ensure all tags exist, creating them if necessary
-     */
-    private function ensureTagsExist(array $rows, array $mapping, array $options): array
-    {
-        if (!isset($mapping['tags']) || !($options['create_missing_tags'] ?? true)) {
-            return Tag::pluck('id', 'name')
-                ->mapWithKeys(fn($id, $name) => [strtolower($name) => ['id' => $id, 'created' => false]])
-                ->toArray();
-        }
-
-        $allTags = [];
-
-        foreach ($rows as $row) {
-            if (isset($row[$mapping['tags']])) {
-                $tagsValue = trim($row[$mapping['tags']]);
-                if ($tagsValue) {
-                    $tags = preg_split('/[,;|]/', $tagsValue);
-                    foreach ($tags as $tag) {
-                        $tag = trim($tag);
-                        if ($tag) {
-                            $allTags[strtolower($tag)] = $tag;
-                        }
-                    }
-                }
-            }
-        }
-
-        $tagMap = [];
-        $lowerNames = array_keys($allTags);
-        $placeholders = implode(',', array_fill(0, count($lowerNames), '?'));
-
-        $existingTags = Tag::whereIn('name', array_values($allTags))
-            ->when(count($lowerNames) > 0, function ($query) use ($placeholders, $lowerNames) {
-                return $query->orWhereRaw("LOWER(name) IN ({$placeholders})", $lowerNames);
-            })
-            ->get();
-
-        foreach ($existingTags as $tag) {
-            $tagMap[strtolower($tag->name)] = ['id' => $tag->id, 'created' => false];
-        }
-
-        foreach ($allTags as $lowerName => $originalName) {
-            if (!isset($tagMap[$lowerName])) {
-                $tag = Tag::create(['name' => $originalName]);
-                $tagMap[$lowerName] = ['id' => $tag->id, 'created' => true];
-            }
-        }
-
-        return $tagMap;
-    }
-
-    /**
-     * Ensure all categories exist, creating them if necessary
-     */
-    private function ensureCategoriesExist(array $rows, array $mapping, array $options): array
-    {
-        if (!isset($mapping['category']) || !($options['create_missing_categories'] ?? true)) {
-            return Category::pluck('id', 'name')
-                ->mapWithKeys(fn($id, $name) => [strtolower($name) => ['id' => $id, 'created' => false]])
-                ->toArray();
-        }
-
-        $allCategories = [];
-        $categoryTypes = []; // Track what type each category should be
-
-        foreach ($rows as $row) {
-            if (isset($row[$mapping['category']])) {
-                $category = trim($row[$mapping['category']]);
-                if ($category) {
-                    $lowerCategory = strtolower($category);
-                    $allCategories[$lowerCategory] = $category;
-
-                    // Determine category type based on amount
-                    if (isset($mapping['amount']) && isset($row[$mapping['amount']])) {
-                        $amount = $this->formatDetector->parseAmount(
-                            $row[$mapping['amount']],
-                            $options['amount_format']
-                        );
-
-                        if ($amount !== null && !isset($categoryTypes[$lowerCategory])) {
-                            $categoryTypes[$lowerCategory] = $amount < 0 ? 'expense' : 'income';
-                        }
-                    }
-                }
-            }
-        }
-
-        $categoryMap = [];
-        $lowerNames = array_keys($allCategories);
-        $placeholders = implode(',', array_fill(0, count($lowerNames), '?'));
-
-        $existingCategories = Category::whereIn('name', array_values($allCategories))
-            ->when(count($lowerNames) > 0, function ($query) use ($placeholders, $lowerNames) {
-                return $query->orWhereRaw("LOWER(name) IN ({$placeholders})", $lowerNames);
-            })
-            ->get();
-
-        foreach ($existingCategories as $category) {
-            $categoryMap[strtolower($category->name)] = ['id' => $category->id, 'created' => false];
-        }
-
-        foreach ($allCategories as $lowerName => $originalName) {
-            if (!isset($categoryMap[$lowerName])) {
-                $type = $categoryTypes[$lowerName] ?? ($options['default_type'] ?? 'expense');
-
-                $category = Category::create([
-                    'name' => $originalName,
-                    'type' => $type,
-                    'icon' => $type === 'income' ? '💰' : '📦',
-                    'color' => '#6b7280', // gray-500
-                ]);
-                $categoryMap[$lowerName] = ['id' => $category->id, 'created' => true];
-            }
-        }
-
-        return $categoryMap;
     }
 }

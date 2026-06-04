@@ -1,0 +1,39 @@
+
+{{ .Chart.Name }} {{ .Chart.AppVersion }} has been deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Topology: single-container, SQLite-only.
+  • Database: SQLite on {{ if .Values.persistence.enabled }}PVC "{{ include "savvy.pvcName" . }}" ({{ .Values.persistence.size }}){{ else }}ephemeral emptyDir (DATA WILL BE LOST ON RESTART){{ end }}
+  • .env:     {{ if .Values.env.manage }}Helm-managed via secret "{{ include "savvy.secretName" . }}"{{ else }}self-bootstrapped by the container on first start{{ end }}
+  • Replicas: {{ .Values.replicaCount }} (fixed — single-writer database)
+  • Image:    {{ include "savvy.image" . }}
+
+Reach the application:
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else if .Values.httpRoute.enabled }}
+{{- range .Values.httpRoute.hostnames }}
+  http(s)://{{ . }}   (via Gateway API HTTPRoute → {{ range $.Values.httpRoute.parentRefs }}{{ .name }} {{ end }})
+{{- end }}
+{{- else if eq .Values.service.type "NodePort" }}
+  export NODE_IP=$(kubectl get nodes -o jsonpath="{.items[0].status.addresses[0].address}")
+  export NODE_PORT=$(kubectl get svc {{ include "savvy.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}")
+  echo "http://$NODE_IP:$NODE_PORT"
+{{- else if eq .Values.service.type "LoadBalancer" }}
+  kubectl get svc {{ include "savvy.fullname" . }} -n {{ .Release.Namespace }} -w   # wait for EXTERNAL-IP
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "savvy.fullname" . }} 8080:{{ .Values.service.port }}
+  echo "open http://127.0.0.1:8080"
+{{- end }}
+
+Health endpoints: /livez (liveness), /readyz (readiness: DB + migrations).
+
+{{- if not .Values.persistence.enabled }}
+
+⚠️  persistence.enabled=false means the SQLite database lives in an emptyDir and
+    will be DESTROYED on every pod restart. Enable persistence for any real use.
+{{- end }}
+
+Verify the release:
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}

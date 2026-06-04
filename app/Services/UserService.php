@@ -24,7 +24,7 @@ class UserService
     {
         $data['password'] = Hash::make($data['password']);
 
-        if (!isset($data['role'])) {
+        if (! isset($data['role'])) {
             $data['role'] = UserRole::ReadOnly;
         }
 
@@ -33,7 +33,7 @@ class UserService
 
     public function update(User $user, array $data): User
     {
-        if (!empty($data['password'])) {
+        if (! empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         } else {
             unset($data['password']);

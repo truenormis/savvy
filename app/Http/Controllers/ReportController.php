@@ -26,24 +26,28 @@ class ReportController extends Controller
     public function overview(OverviewRequest $request): JsonResponse
     {
         $filters = ReportFilterData::fromArray($request->validated());
+
         return response()->json($this->overviewService->getMetrics($filters));
     }
 
     public function moneyFlow(OverviewRequest $request): JsonResponse
     {
         $filters = ReportFilterData::fromArray($request->validated());
+
         return response()->json($this->cashFlowService->getMoneyFlow($filters));
     }
 
     public function expensePace(OverviewRequest $request): JsonResponse
     {
         $filters = ReportFilterData::fromArray($request->validated());
+
         return response()->json($this->expenseService->getPace($filters));
     }
 
     public function expensesByCategory(OverviewRequest $request): JsonResponse
     {
         $filters = ReportFilterData::fromArray($request->validated());
+
         return response()->json($this->expenseService->getByCategory($filters));
     }
 
@@ -51,12 +55,14 @@ class ReportController extends Controller
     {
         $filters = ReportFilterData::fromArray($request->validated());
         $groupBy = $request->validated('group_by', 'day');
+
         return response()->json($this->cashFlowService->getOverTime($filters, $groupBy));
     }
 
     public function activityHeatmap(OverviewRequest $request): JsonResponse
     {
         $filters = ReportFilterData::fromArray($request->validated());
+
         return response()->json($this->expenseService->getHeatmap($filters));
     }
 
@@ -64,6 +70,7 @@ class ReportController extends Controller
     {
         $filters = ReportFilterData::fromArray($request->validated());
         $type = $request->validated('type');
+
         return response()->json($this->transactionService->getSummary($filters, $type));
     }
 
@@ -71,6 +78,7 @@ class ReportController extends Controller
     {
         $filters = ReportFilterData::fromArray($request->validated());
         $type = $request->validated('type');
+
         return response()->json($this->transactionService->getByCategory($filters, $type));
     }
 
@@ -79,6 +87,7 @@ class ReportController extends Controller
         $filters = ReportFilterData::fromArray($request->validated());
         $type = $request->validated('type');
         $groupBy = $request->validated('group_by', 'day');
+
         return response()->json($this->transactionService->getDynamics($filters, $type, $groupBy));
     }
 
@@ -87,12 +96,14 @@ class ReportController extends Controller
         $filters = ReportFilterData::fromArray($request->validated());
         $type = $request->validated('type');
         $limit = $request->validated('limit', 10);
+
         return response()->json($this->transactionService->getTop($filters, $type, $limit));
     }
 
     public function netWorth(OverviewRequest $request): JsonResponse
     {
         $filters = ReportFilterData::fromArray($request->validated());
+
         return response()->json($this->netWorthService->getCurrent($filters));
     }
 
@@ -100,6 +111,7 @@ class ReportController extends Controller
     {
         $filters = ReportFilterData::fromArray($request->validated());
         $groupBy = $request->validated('group_by', 'day');
+
         return response()->json($this->netWorthService->getHistory($filters, $groupBy));
     }
 }

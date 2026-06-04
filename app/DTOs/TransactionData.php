@@ -39,6 +39,6 @@ readonly class TransactionData
 
     public function hasItems(): bool
     {
-        return !empty($this->items);
+        return ! empty($this->items);
     }
 }

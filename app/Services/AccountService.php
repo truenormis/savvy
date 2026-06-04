@@ -58,7 +58,7 @@ class AccountService
     public function getBalanceHistory(string $startDate, string $endDate): array
     {
         $baseCurrency = Currency::getBase();
-        if (!$baseCurrency) {
+        if (! $baseCurrency) {
             return ['dates' => [], 'series' => [], 'currency' => '$', 'decimals' => 2];
         }
 
@@ -211,7 +211,7 @@ class AccountService
             ? Currency::find($baseCurrencyId)
             : Currency::getBase();
 
-        if (!$baseCurrency) {
+        if (! $baseCurrency) {
             return [
                 'total_balance' => 0,
                 'debts_impact' => 0,
@@ -273,7 +273,7 @@ class AccountService
     public function getBalanceComparison(): array
     {
         $baseCurrency = Currency::getBase();
-        if (!$baseCurrency) {
+        if (! $baseCurrency) {
             return [
                 'current' => 0,
                 'previous' => null,
@@ -295,7 +295,7 @@ class AccountService
         // Find the Total series and get the last value
         $previousBalance = null;
         foreach ($history['series'] as $series) {
-            if ($series['type'] === 'total' && !empty($series['data'])) {
+            if ($series['type'] === 'total' && ! empty($series['data'])) {
                 $previousBalance = end($series['data']);
                 break;
             }

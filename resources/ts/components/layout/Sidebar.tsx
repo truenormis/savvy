@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap, Shield, Upload, Database, LucideIcon, Github, ExternalLink } from 'lucide-react'
+import { Home, FolderTree, Coins, CreditCard, Settings, ChevronDown, Receipt, PiggyBank, Hash, BarChart3, HandCoins, Users, Cog, Repeat, Zap, Shield, Upload, Database, LucideIcon, Github, ExternalLink, KeyRound, Activity } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 import {
     Sidebar,
@@ -20,6 +20,7 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { useUiStore } from '@/stores/ui'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -47,7 +48,9 @@ const mainItems: MenuItem[] = [
 
 const settingsItems: MenuItem[] = [
     { to: '/settings/system', icon: Cog, label: 'System' },
+    { to: '/settings/monitoring', icon: Activity, label: 'Monitoring' },
     { to: '/settings/security', icon: Shield, label: 'Security' },
+    { to: '/settings/providers', icon: KeyRound, label: 'SSO Providers' },
     { to: '/settings/import', icon: Upload, label: 'Import' },
     { to: '/settings/backups', icon: Database, label: 'Backups' },
     { to: '/accounts', icon: CreditCard, label: 'Accounts' },
@@ -59,7 +62,8 @@ const settingsItems: MenuItem[] = [
 
 export function AppSidebar() {
     const location = useLocation()
-    const [settingsOpen, setSettingsOpen] = useState(false)
+    const settingsOpen = useUiStore((state) => state.settingsOpen)
+    const setSettingsOpen = useUiStore((state) => state.setSettingsOpen)
     const { setOpenMobile } = useSidebar()
 
     // Close mobile sidebar when navigating to a new page
@@ -78,7 +82,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <a href="/">
+                            <NavLink to="/">
                                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                                     <Logo className="size-5" />
                                 </div>
@@ -86,7 +90,7 @@ export function AppSidebar() {
                                     <span className="truncate font-semibold">Savvy</span>
                                     <span className="truncate text-xs text-muted-foreground">Finance Tracker</span>
                                 </div>
-                            </a>
+                            </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

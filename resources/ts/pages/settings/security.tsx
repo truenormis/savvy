@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Page, PageHeader } from '@/components/shared'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ReactNode, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { Page, PageHeader, FormWrapper } from '@/components/shared'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
 import {
     Dialog,
     DialogContent,
@@ -24,14 +25,83 @@ import {
     useConfirmTwoFactor,
     useDisableTwoFactor,
     useRegenerateRecoveryCodes,
+    useWebauthnCredentials,
+    useRegisterPasskey,
+    useDeletePasskey,
+    isPasskeyDomainSupported,
 } from '@/hooks'
-import { ShieldCheck, ShieldOff, Key, Copy, RefreshCw } from 'lucide-react'
+import { browserSupportsWebAuthn } from '@simplewebauthn/browser'
+import { ShieldCheck, Key, Copy, RefreshCw, Fingerprint, Trash2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { QRCode } from 'react-qrcode-logo'
 import { useTheme } from '@/hooks'
 import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
 
 type SetupStep = 'qr' | 'verify' | 'recovery'
+
+function Section({
+    icon: Icon,
+    title,
+    description,
+    children,
+}: {
+    icon: LucideIcon
+    title: string
+    description: string
+    children: ReactNode
+}) {
+    return (
+        <section className="rounded-xl border bg-card shadow-sm">
+            <header className="flex items-start gap-3 border-b px-5 py-4">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
+                    <Icon className="size-4" />
+                </div>
+                <div className="space-y-0.5">
+                    <h3 className="text-sm font-semibold leading-none">{title}</h3>
+                    <p className="text-xs text-muted-foreground">{description}</p>
+                </div>
+            </header>
+            <div className="p-5">{children}</div>
+        </section>
+    )
+}
+
+function ActionRow({
+    label,
+    description,
+    badge,
+    children,
+}: {
+    label: string
+    description: ReactNode
+    badge?: ReactNode
+    children: ReactNode
+}) {
+    return (
+        <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+            <div className="min-w-0 space-y-1">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{label}</span>
+                    {badge}
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+            </div>
+            {children}
+        </div>
+    )
+}
+
+function RowSkeleton() {
+    return (
+        <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+            <div className="space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-64" />
+            </div>
+            <Skeleton className="h-9 w-24" />
+        </div>
+    )
+}
 
 export default function SecuritySettingsPage() {
     const { theme } = useTheme()
@@ -42,6 +112,12 @@ export default function SecuritySettingsPage() {
     const disableMutation = useDisableTwoFactor()
     const regenerateMutation = useRegenerateRecoveryCodes()
 
+    const passkeySupported = browserSupportsWebAuthn()
+    const passkeyDomainValid = isPasskeyDomainSupported()
+    const { data: passkeys, isLoading: passkeysLoading } = useWebauthnCredentials()
+    const registerPasskey = useRegisterPasskey()
+    const deletePasskey = useDeletePasskey()
+
     const [showEnableDialog, setShowEnableDialog] = useState(false)
     const [showDisableDialog, setShowDisableDialog] = useState(false)
     const [showRegenerateDialog, setShowRegenerateDialog] = useState(false)
@@ -49,6 +125,8 @@ export default function SecuritySettingsPage() {
     const [qrData, setQrData] = useState<{ secret: string; qr_code_url: string } | null>(null)
     const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
     const [otpValue, setOtpValue] = useState('')
+    const [showAddPasskeyDialog, setShowAddPasskeyDialog] = useState(false)
+    const [passkeyName, setPasskeyName] = useState('')
 
     const handleEnable = async () => {
         const data = await enableMutation.mutateAsync()
@@ -79,6 +157,12 @@ export default function SecuritySettingsPage() {
         setOtpValue('')
     }
 
+    const handleAddPasskey = async () => {
+        await registerPasskey.mutateAsync(passkeyName.trim() || null)
+        setShowAddPasskeyDialog(false)
+        setPasskeyName('')
+    }
+
     const copySecret = () => {
         if (qrData?.secret) {
             navigator.clipboard.writeText(qrData.secret)
@@ -101,86 +185,124 @@ export default function SecuritySettingsPage() {
 
     return (
         <Page title="Security Settings">
-            <PageHeader
-                title="Security"
-                description="Manage your account security settings"
-            />
+            <PageHeader title="Security" description="Manage your account security settings" />
 
-            <div className="space-y-6">
-                {/* 2FA Status Card */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            {status?.enabled ? (
-                                <ShieldCheck className="h-5 w-5 text-green-500" />
+            <FormWrapper>
+                <div className="grid items-start gap-6 lg:grid-cols-2">
+                    {/* Two-Factor Authentication */}
+                    <Section
+                        icon={ShieldCheck}
+                        title="Two-Factor Authentication"
+                        description="Require a verification code in addition to your password"
+                    >
+                        <div className="rounded-lg border">
+                            {isLoading ? (
+                                <RowSkeleton />
                             ) : (
-                                <ShieldOff className="h-5 w-5 text-muted-foreground" />
-                            )}
-                            Two-Factor Authentication
-                        </CardTitle>
-                        <CardDescription>
-                            Add an extra layer of security to your account by requiring a verification code in addition to your password.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoading ? (
-                            <div className="flex items-center justify-between">
-                                <Skeleton className="h-6 w-24" />
-                                <Skeleton className="h-9 w-24" />
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-between">
-                                <Badge variant={status?.enabled ? 'default' : 'secondary'}>
-                                    {status?.enabled ? 'Enabled' : 'Disabled'}
-                                </Badge>
-                                {status?.enabled ? (
-                                    <Button
-                                        variant="destructive"
-                                        onClick={() => setShowDisableDialog(true)}
-                                        disabled={isReadOnly}
-                                    >
-                                        Disable 2FA
-                                    </Button>
-                                ) : (
-                                    <Button onClick={handleEnable} disabled={enableMutation.isPending || isReadOnly}>
-                                        {enableMutation.isPending ? 'Enabling...' : 'Enable 2FA'}
-                                    </Button>
-                                )}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Recovery Codes Card */}
-                {status?.enabled && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Key className="h-5 w-5" />
-                                Recovery Codes
-                            </CardTitle>
-                            <CardDescription>
-                                Recovery codes can be used to access your account if you lose your authenticator device.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center justify-between">
-                                <div className="text-sm text-muted-foreground">
-                                    {status.recovery_codes_remaining} codes remaining
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setShowRegenerateDialog(true)}
-                                    disabled={isReadOnly}
+                                <ActionRow
+                                    label="Authenticator app"
+                                    description="Use a TOTP app such as Google Authenticator or Authy to generate sign-in codes."
                                 >
-                                    <RefreshCw className="h-4 w-4 mr-2" />
-                                    Regenerate
+                                    <Switch
+                                        checked={status?.enabled ?? false}
+                                        disabled={isReadOnly || enableMutation.isPending}
+                                        onCheckedChange={(checked) =>
+                                            checked ? handleEnable() : setShowDisableDialog(true)
+                                        }
+                                        aria-label="Toggle two-factor authentication"
+                                    />
+                                </ActionRow>
+                            )}
+                        </div>
+                    </Section>
+
+                    {/* Passkeys */}
+                    {passkeySupported && (
+                        <Section
+                            icon={Fingerprint}
+                            title="Passkeys"
+                            description="Sign in without a password using biometrics, a screen lock, or a security key"
+                        >
+                            <div className="space-y-4">
+                                {passkeysLoading ? (
+                                    <div className="rounded-lg border">
+                                        <RowSkeleton />
+                                    </div>
+                                ) : passkeys && passkeys.length > 0 ? (
+                                    <div className="divide-y rounded-lg border">
+                                        {passkeys.map((passkey) => (
+                                            <div key={passkey.id} className="flex items-center justify-between gap-4 px-4 py-3.5">
+                                                <div className="min-w-0 space-y-1">
+                                                    <div className="truncate text-sm font-medium">
+                                                        {passkey.name || 'Unnamed passkey'}
+                                                    </div>
+                                                    <p className="text-sm leading-relaxed text-muted-foreground">
+                                                        Added {new Date(passkey.created_at).toLocaleDateString()}
+                                                        {passkey.last_used_at
+                                                            ? ` · Last used ${new Date(passkey.last_used_at).toLocaleDateString()}`
+                                                            : ' · Never used'}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => deletePasskey.mutate(passkey.id)}
+                                                    disabled={isReadOnly || deletePasskey.isPending}
+                                                    aria-label="Remove passkey"
+                                                >
+                                                    <Trash2 className="size-4 text-destructive" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+                                        No passkeys registered yet.
+                                    </div>
+                                )}
+                                {!passkeyDomainValid && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Passkeys require a secure origin and a valid domain. Open the app over HTTPS or via{' '}
+                                        <code className="rounded bg-muted px-1 py-0.5 text-xs">localhost</code> — raw IP addresses are not allowed.
+                                    </p>
+                                )}
+                                <Button
+                                    onClick={() => setShowAddPasskeyDialog(true)}
+                                    disabled={isReadOnly || registerPasskey.isPending || !passkeyDomainValid}
+                                >
+                                    <Plus className="mr-2 size-4" />
+                                    Add passkey
                                 </Button>
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
+                        </Section>
+                    )}
+
+                    {/* Recovery Codes */}
+                    {status?.enabled && (
+                        <Section
+                            icon={Key}
+                            title="Recovery Codes"
+                            description="Single-use codes to access your account if you lose your authenticator"
+                        >
+                            <div className="rounded-lg border">
+                                <ActionRow
+                                    label="Backup recovery codes"
+                                    description={`${status.recovery_codes_remaining} codes remaining. Regenerating invalidates the old set.`}
+                                >
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowRegenerateDialog(true)}
+                                        disabled={isReadOnly}
+                                    >
+                                        <RefreshCw className="mr-2 size-4" />
+                                        Regenerate
+                                    </Button>
+                                </ActionRow>
+                            </div>
+                        </Section>
+                    )}
+                </div>
+            </FormWrapper>
 
             {/* Enable 2FA Dialog */}
             <Dialog open={showEnableDialog} onOpenChange={closeEnableDialog}>
@@ -388,6 +510,44 @@ export default function SecuritySettingsPage() {
                             disabled={otpValue.length !== 6 || regenerateMutation.isPending}
                         >
                             {regenerateMutation.isPending ? 'Regenerating...' : 'Regenerate'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Passkey Dialog */}
+            <Dialog open={showAddPasskeyDialog} onOpenChange={(open) => {
+                setShowAddPasskeyDialog(open)
+                if (!open) setPasskeyName('')
+            }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Add a passkey</DialogTitle>
+                        <DialogDescription>
+                            Give this passkey a name so you can recognize it later, then follow your browser's prompt.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-2">
+                        <Input
+                            placeholder="e.g. MacBook Touch ID, iPhone, YubiKey"
+                            value={passkeyName}
+                            onChange={(e) => setPasskeyName(e.target.value)}
+                            maxLength={100}
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !registerPasskey.isPending) handleAddPasskey()
+                            }}
+                        />
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => {
+                            setShowAddPasskeyDialog(false)
+                            setPasskeyName('')
+                        }}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleAddPasskey} disabled={registerPasskey.isPending}>
+                            {registerPasskey.isPending ? 'Waiting for device...' : 'Continue'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

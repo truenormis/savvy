@@ -17,6 +17,7 @@ enum DebtType: string
 
     /**
      * How this debt type affects total capital
+     *
      * @return int 1 = positive (increases capital), -1 = negative (decreases capital)
      */
     public function capitalImpact(): int
