@@ -6,6 +6,7 @@ use App\Http\Requests\Currency\StoreCurrencyRequest;
 use App\Http\Requests\Currency\UpdateCurrencyRequest;
 use App\Http\Resources\CurrencyResource;
 use App\Models\Currency;
+use App\Services\CurrencyApiService;
 use App\Services\CurrencyService;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,11 @@ class CurrencyController extends Controller
     public function index(): AnonymousResourceCollection
     {
         return CurrencyResource::collection($this->currencyService->getAll());
+    }
+
+    public function catalog(CurrencyApiService $currencyApi): JsonResponse
+    {
+        return response()->json(['data' => $currencyApi->getCatalog()]);
     }
 
     public function store(StoreCurrencyRequest $request): JsonResponse

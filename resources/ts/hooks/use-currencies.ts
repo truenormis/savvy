@@ -13,6 +13,15 @@ export function useCurrencies() {
     })
 }
 
+export function useCurrencyCatalog(enabled = true) {
+    return useQuery({
+        queryKey: [...QUERY_KEY, 'catalog'],
+        queryFn: currenciesApi.getCatalog,
+        enabled,
+        staleTime: 60 * 60 * 1000,
+    })
+}
+
 export function useCurrency(id: string | number) {
     return useQuery({
         queryKey: [...QUERY_KEY, id],

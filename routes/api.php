@@ -97,6 +97,7 @@ Route::middleware(['session', 'csrf'])->group(function () {
 
     // Resources with write access control
     Route::middleware('write')->group(function () {
+        Route::get('currencies/catalog', [CurrencyController::class, 'catalog']);
         Route::apiResource('currencies', CurrencyController::class);
         Route::post('currencies/{currency}/set-base', [CurrencyController::class, 'setBase']);
         Route::post('currencies/convert', [CurrencyController::class, 'convert']);

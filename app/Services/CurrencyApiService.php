@@ -3,12 +3,56 @@
 namespace App\Services;
 
 use App\Models\Currency;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class CurrencyApiService
 {
     protected string $apiUrl = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies';
+
+    protected string $catalogUrl = 'https://cdn.jsdelivr.net/gh/fawazahmed0/exchange-api@main/other/Common-Currency.json';
+
+    public function getCatalog(): array
+    {
+        $metadata = $this->fetchCatalogMetadata();
+
+        if (! $metadata) {
+            return [];
+        }
+
+        $existing = Currency::query()
+            ->pluck('code')
+            ->map(fn (string $code) => strtoupper($code))
+            ->all();
+
+        $rates = $this->ratesAgainstBase();
+        $catalog = [];
+
+        foreach ($metadata as $code => $info) {
+            if (! is_array($info)) {
+                continue;
+            }
+
+            $normalized = strtoupper((string) ($info['code'] ?? $code));
+
+            if (in_array($normalized, $existing, true)) {
+                continue;
+            }
+
+            $catalog[] = [
+                'code' => $normalized,
+                'name' => (string) ($info['name'] ?? $normalized),
+                'symbol' => $this->catalogSymbol($info),
+                'decimals' => (int) ($info['decimal_digits'] ?? 2),
+                'rate' => $rates[$normalized] ?? null,
+            ];
+        }
+
+        usort($catalog, fn (array $a, array $b) => $a['code'] <=> $b['code']);
+
+        return $catalog;
+    }
 
     public function updateRates(): array
     {
@@ -33,10 +77,71 @@ class CurrencyApiService
         return $this->updateFromReference($baseCurrency);
     }
 
-    protected function fetchRates(string $code): ?array
+    protected function fetchCatalogMetadata(): ?array
+    {
+        $cached = Cache::get('currency.catalog.metadata');
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        try {
+            $response = Http::timeout(5)->get($this->catalogUrl);
+
+            if ($response->successful() && is_array($response->json())) {
+                Cache::put('currency.catalog.metadata', $response->json(), now()->addDay());
+
+                return $response->json();
+            }
+
+            Log::warning('Currency catalog request failed', [
+                'status' => $response->status(),
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Currency catalog request error: '.$e->getMessage());
+        }
+
+        return null;
+    }
+
+    protected function ratesAgainstBase(): array
+    {
+        $baseCurrency = Currency::getBase();
+
+        if (! $baseCurrency) {
+            return [];
+        }
+
+        $baseCode = strtolower($baseCurrency->code);
+        $apiData = $this->fetchRates($baseCode, 5);
+        $apiRates = $apiData[$baseCode] ?? null;
+
+        if (! is_array($apiRates)) {
+            return [];
+        }
+
+        $rates = [strtoupper($baseCurrency->code) => 1.0];
+
+        foreach ($apiRates as $code => $value) {
+            if (is_numeric($value) && (float) $value > 0) {
+                $rates[strtoupper((string) $code)] = round(1 / (float) $value, 6);
+            }
+        }
+
+        return $rates;
+    }
+
+    protected function catalogSymbol(array $info): string
+    {
+        $symbol = (string) ($info['symbol_native'] ?? $info['symbol'] ?? $info['code'] ?? '');
+
+        return mb_substr($symbol, 0, 5);
+    }
+
+    protected function fetchRates(string $code, int $timeout = 30): ?array
     {
         try {
-            $response = Http::timeout(30)->get("{$this->apiUrl}/{$code}.json");
+            $response = Http::timeout($timeout)->get("{$this->apiUrl}/{$code}.json");
 
             if ($response->successful()) {
                 return $response->json();

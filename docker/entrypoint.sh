@@ -91,4 +91,6 @@ php artisan route:cache
 php artisan view:cache
 php artisan event:cache
 
+php artisan currencies:update --no-interaction || true
+
 exec /usr/bin/supervisord -c /etc/supervisord.conf

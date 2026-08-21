@@ -9,6 +9,14 @@ export interface Currency extends BaseEntity {
     rate: number
 }
 
+export interface CurrencyCatalogItem {
+    code: string
+    name: string
+    symbol: string
+    decimals: number
+    rate: number | null
+}
+
 export interface CurrencyFormData {
     code: string
     name: string

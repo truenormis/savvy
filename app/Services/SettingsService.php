@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\SettingUpdated;
 use App\Models\Setting;
 
 class SettingsService
@@ -30,12 +31,18 @@ class SettingsService
 
     public function set(string $key, mixed $value): void
     {
+        $previous = $this->get($key);
+
         Setting::updateOrCreate(
             ['key' => $key],
             ['value' => $this->serialize($value)]
         );
 
         $this->cache[$key] = $value;
+
+        if ($previous !== $value) {
+            SettingUpdated::dispatch($key, $value);
+        }
     }
 
     public function all(): array
