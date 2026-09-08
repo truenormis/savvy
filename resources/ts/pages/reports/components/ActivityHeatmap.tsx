@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { useActivityHeatmap } from '@/hooks'
 import type { ReportFilters } from '../types'
 
@@ -44,11 +44,6 @@ export function ActivityHeatmap({ filters }: ActivityHeatmapProps) {
     const { data, isLoading, error } = useActivityHeatmap(filters)
     const areaRef = useRef<HTMLDivElement>(null)
     const [cols, setCols] = useState(7)
-
-    const parseLocalDate = (dateStr: string) => {
-        const [year, month, day] = dateStr.split('-').map(Number)
-        return new Date(year, month - 1, day)
-    }
 
     const heatmapData = useMemo(() => {
         if (!data?.items?.length) return null
@@ -160,7 +155,7 @@ export function ActivityHeatmap({ filters }: ActivityHeatmapProps) {
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="text-center">
                                         <p className="font-medium">
-                                            {parseLocalDate(cell.date).toLocaleDateString('en-US', {
+                                            {formatDate(cell.date, {
                                                 weekday: 'short',
                                                 month: 'short',
                                                 day: 'numeric',

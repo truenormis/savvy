@@ -6,6 +6,7 @@ use App\Enums\BudgetPeriod;
 use App\Models\Budget;
 use App\Models\Currency;
 use App\Models\Transaction;
+use App\Support\AppTime;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +91,7 @@ class BudgetService
 
     private function getPeriodDates(Budget $budget): array
     {
-        $now = Carbon::now();
+        $now = AppTime::now();
 
         if ($budget->period === BudgetPeriod::OneTime) {
             return [

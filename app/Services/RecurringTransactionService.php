@@ -7,6 +7,7 @@ use App\Enums\RecurringFrequency;
 use App\Models\Account;
 use App\Models\RecurringTransaction;
 use App\Models\Transaction;
+use App\Support\AppTime;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -96,7 +97,7 @@ class RecurringTransactionService
             $generated[] = $transaction;
 
             $recurring->update([
-                'last_run_date' => now()->toDateString(),
+                'last_run_date' => AppTime::today(),
                 'next_run_date' => $this->calculateNextRunDate($recurring),
             ]);
         }
@@ -122,7 +123,7 @@ class RecurringTransactionService
             toAccountId: $recurring->to_account_id,
             toAmount: $toAmount,
             description: $recurring->description,
-            date: now()->toDateString(),
+            date: AppTime::today(),
             tagIds: $recurring->tags->pluck('id')->toArray(),
         );
 

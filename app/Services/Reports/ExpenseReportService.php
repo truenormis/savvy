@@ -6,7 +6,7 @@ use App\DTOs\ReportFilterData;
 use App\Models\Currency;
 use App\Repositories\BudgetRepository;
 use App\Repositories\TransactionRepository;
-use Carbon\Carbon;
+use App\Support\AppTime;
 
 class ExpenseReportService
 {
@@ -28,7 +28,7 @@ class ExpenseReportService
             $filters
         );
 
-        $today = Carbon::now()->startOfDay();
+        $today = AppTime::now()->startOfDay();
         $budget = $this->budgetRepository->getMonthlyBudget($filters);
 
         $monthsData = [];

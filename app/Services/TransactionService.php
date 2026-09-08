@@ -10,6 +10,7 @@ use App\Enums\TriggerType;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Support\AppTime;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -97,7 +98,7 @@ class TransactionService
     {
         return DB::transaction(function () use ($transaction) {
             $newTransaction = $transaction->replicate(['created_at', 'updated_at']);
-            $newTransaction->date = now()->toDateString();
+            $newTransaction->date = AppTime::today();
             $newTransaction->save();
 
             foreach ($transaction->items as $item) {

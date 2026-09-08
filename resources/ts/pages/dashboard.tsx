@@ -34,7 +34,7 @@ import { Progress } from '@/components/ui/progress'
 import { useTotalBalance, useTransactions, useBalanceHistory, useAccounts, useCategorySummary, useBudgets, useDebtsWithSummary, useBalanceComparison, useUpcomingRecurring } from '@/hooks'
 import { useOverviewMetrics } from '@/hooks/use-reports'
 import type { ReportFilters } from '@/pages/reports/types'
-import { cn, formatAmount, formatShortDate as formatDate } from '@/lib/utils'
+import { cn, formatAmount, parseDate, formatShortDate as formatDate } from '@/lib/utils'
 import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { useTheme } from '@/hooks/use-theme'
@@ -262,7 +262,8 @@ export default function DashboardPage() {
         // Determine label format based on date range
         const daysDiff = historyData.dates.length
         const formatLabel = (d: string) => {
-            const date = new Date(d)
+            const date = parseDate(d)
+            if (!date) return d
             if (daysDiff > 90) {
                 return `${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear().toString().slice(2)}`
             }

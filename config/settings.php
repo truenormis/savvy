@@ -13,6 +13,8 @@ return [
 
     'auto_update_currencies' => true,
 
+    'timezone' => 'UTC',
+
     // Global kill-switch for JIT provisioning of brand-new users via SSO.
     // When false, SSO can only sign in users that already exist (or are linked).
     'sso_allow_signup' => true,

@@ -22,7 +22,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { RecurringTransaction } from '@/types'
-import { cn, formatDate } from '@/lib/utils'
+import { cn, formatDate, toDateString, today } from '@/lib/utils'
 
 const typeConfig = {
     income: { icon: ArrowDownLeft, color: 'text-green-500', label: 'Income' },
@@ -120,14 +120,16 @@ export const createRecurringColumns = ({
         accessorKey: 'nextRunDate',
         header: 'Next Run',
         cell: ({ row }) => {
-            const date = new Date(row.original.nextRunDate)
-            const isToday = date.toDateString() === new Date().toDateString()
-            const isTomorrow = date.toDateString() === new Date(Date.now() + 86400000).toDateString()
+            const nextRunDate = row.original.nextRunDate
+            const tomorrow = new Date()
+            tomorrow.setDate(tomorrow.getDate() + 1)
+            const isToday = nextRunDate === today()
+            const isTomorrow = nextRunDate === toDateString(tomorrow)
 
             return (
                 <div>
                     <p className={cn('font-medium', isToday && 'text-orange-500')}>
-                        {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : formatDate(date)}
+                        {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : formatDate(nextRunDate)}
                     </p>
                     {row.original.lastRunDate && (
                         <p className="text-xs text-muted-foreground">

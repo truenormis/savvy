@@ -8,6 +8,7 @@ use App\Http\Resources\AccountCollection;
 use App\Http\Resources\AccountResource;
 use App\Models\Account;
 use App\Services\AccountService;
+use App\Support\AppTime;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -72,8 +73,8 @@ class AccountController extends Controller
 
     public function balanceHistory(Request $request): JsonResponse
     {
-        $startDate = $request->input('start_date', now()->subDays(30)->toDateString());
-        $endDate = $request->input('end_date', now()->toDateString());
+        $startDate = $request->input('start_date', AppTime::now()->subDays(30)->toDateString());
+        $endDate = $request->input('end_date', AppTime::today());
 
         $history = $this->accountService->getBalanceHistory($startDate, $endDate);
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Account;
 use App\Models\Currency;
+use App\Support\AppTime;
 use Illuminate\Database\Eloquent\Collection;
 
 class AccountService
@@ -287,8 +288,8 @@ class AccountService
         $currentBalance = $summary['total_balance'];
 
         // Get balance at the end of the previous month
-        $lastDayOfPrevMonth = \Carbon\Carbon::now()->subMonth()->endOfMonth()->format('Y-m-d');
-        $firstDayOfPrevMonth = \Carbon\Carbon::now()->subMonth()->startOfMonth()->format('Y-m-d');
+        $lastDayOfPrevMonth = AppTime::now()->subMonth()->endOfMonth()->format('Y-m-d');
+        $firstDayOfPrevMonth = AppTime::now()->subMonth()->startOfMonth()->format('Y-m-d');
 
         $history = $this->getBalanceHistory($firstDayOfPrevMonth, $lastDayOfPrevMonth);
 

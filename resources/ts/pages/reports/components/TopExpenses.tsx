@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChevronRight } from 'lucide-react'
 import { useTransactionReportTop } from '@/hooks'
+import { formatShortDate as formatDate } from '@/lib/utils'
 import type { ReportFilters } from '../types'
 
 interface TopExpensesProps {
@@ -24,15 +25,6 @@ export function TopExpenses({ filters, limit = 10 }: TopExpensesProps) {
 
     const formatCurrency = (val: number) => {
         return `${currency}${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-    }
-
-    const formatDate = (dateStr: string) => {
-        if (!dateStr) return ''
-        const parts = dateStr.split('-')
-        if (parts.length !== 3) return dateStr
-        const [year, month, day] = parts.map(Number)
-        const date = new Date(year, month - 1, day)
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }
 
     const handleTransactionClick = (id: number) => {
