@@ -47,7 +47,7 @@ return [
         // with the application data writer lock (single-container philosophy).
         'sqlite_queue' => [
             'driver' => 'sqlite',
-            'database' => env('DB_QUEUE_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+            'database' => env('DB_QUEUE_DATABASE') ?: env('DB_DATABASE') ?: database_path('database.sqlite'),
             'prefix' => '',
             'foreign_key_constraints' => false,
             'busy_timeout' => env('DB_BUSY_TIMEOUT', 5000),
@@ -58,7 +58,7 @@ return [
 
         'sqlite_cache' => [
             'driver' => 'sqlite',
-            'database' => env('DB_CACHE_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+            'database' => env('DB_CACHE_DATABASE') ?: env('DB_DATABASE') ?: database_path('database.sqlite'),
             'prefix' => '',
             'foreign_key_constraints' => false,
             'busy_timeout' => env('DB_BUSY_TIMEOUT', 5000),
@@ -69,7 +69,7 @@ return [
 
         'sqlite_sessions' => [
             'driver' => 'sqlite',
-            'database' => env('DB_SESSIONS_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+            'database' => env('DB_SESSIONS_DATABASE') ?: env('DB_DATABASE') ?: database_path('database.sqlite'),
             'prefix' => '',
             'foreign_key_constraints' => false,
             'busy_timeout' => env('DB_BUSY_TIMEOUT', 5000),

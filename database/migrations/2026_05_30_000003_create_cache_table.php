@@ -11,15 +11,32 @@ return new class extends Migration
         return config('cache.stores.database.connection') ?: config('database.default');
     }
 
+    /**
+     * Create the table only when it is missing.
+     *
+     * These framework tables live on a dedicated connection whose migration
+     * bookkeeping is kept in the main database. Restoring an older backup of
+     * the main database rewinds that ledger while the shard keeps its tables,
+     * so an unguarded create() would abort the whole migration run.
+     */
+    private function ensure(string $table, callable $definition): void
+    {
+        if (Schema::connection($this->connection())->hasTable($table)) {
+            return;
+        }
+
+        Schema::connection($this->connection())->create($table, $definition);
+    }
+
     public function up(): void
     {
-        Schema::connection($this->connection())->create('cache', function (Blueprint $table) {
+        $this->ensure('cache', function (Blueprint $table) {
             $table->string('key')->primary();
             $table->mediumText('value');
             $table->integer('expiration');
         });
 
-        Schema::connection($this->connection())->create('cache_locks', function (Blueprint $table) {
+        $this->ensure('cache_locks', function (Blueprint $table) {
             $table->string('key')->primary();
             $table->string('owner');
             $table->integer('expiration');

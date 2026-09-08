@@ -43,6 +43,17 @@ class DemoSeeder extends Seeder
 
     public function run(): void
     {
+        if (! $this->isSafeToRun()) {
+            $this->command?->warn(
+                'DemoSeeder skipped: this database already holds real data. '
+                .'It would delete every account, transaction, budget, recurring transaction '
+                .'and automation rule, and reset the demo logins. '
+                .'Set SAVVY_ALLOW_DEMO_SEED=true to run it anyway.'
+            );
+
+            return;
+        }
+
         mt_srand(20260605);
 
         $this->createUsers();
@@ -71,6 +82,25 @@ class DemoSeeder extends Seeder
         mt_srand();
 
         $this->command->info('Demo data seeded: '.Transaction::count().' transactions across '.count($accounts).' accounts.');
+    }
+
+    /**
+     * Demo data is destructive: resetDemoData() deletes the user's whole
+     * ledger and createUsers() resets the published demo logins. Only ever
+     * run against an empty install, or when an operator opts in explicitly.
+     */
+    private function isSafeToRun(): bool
+    {
+        if (filter_var(env('SAVVY_ALLOW_DEMO_SEED', false), FILTER_VALIDATE_BOOLEAN)) {
+            return true;
+        }
+
+        return User::count() === 0
+            && Account::count() === 0
+            && Transaction::count() === 0
+            && Budget::count() === 0
+            && RecurringTransaction::count() === 0
+            && AutomationRule::count() === 0;
     }
 
     private function createUsers(): void

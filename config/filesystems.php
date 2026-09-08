@@ -49,7 +49,7 @@ return [
 
         'uploads' => [
             'driver' => 'local',
-            'root' => env('UPLOAD_ROOT', storage_path('app/uploads')),
+            'root' => env('UPLOAD_ROOT') ?: storage_path('app/uploads'),
             'throw' => true,
             'report' => false,
         ],

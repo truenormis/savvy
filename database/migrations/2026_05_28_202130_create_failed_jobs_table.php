@@ -11,9 +11,23 @@ return new class extends Migration
         return config('queue.failed.database') ?: config('database.default');
     }
 
+    /**
+     * Create the table only when it is missing. See the note in the sessions
+     * migration: the shard keeps its tables when a restored main database
+     * rewinds the migration ledger.
+     */
+    private function ensure(string $table, callable $definition): void
+    {
+        if (Schema::connection($this->connection())->hasTable($table)) {
+            return;
+        }
+
+        Schema::connection($this->connection())->create($table, $definition);
+    }
+
     public function up(): void
     {
-        Schema::connection($this->connection())->create('failed_jobs', function (Blueprint $table) {
+        $this->ensure('failed_jobs', function (Blueprint $table) {
             $table->id();
             $table->string('uuid')->unique();
             $table->text('connection');

@@ -382,7 +382,11 @@ class CsvImportService
                     'category_id' => $categoryId,
                     'amount' => $amount,
                     'description' => $result['description'],
-                    'date' => $result['date'],
+                    // Bulk inserts bypass Eloquent, so the date cast never
+                    // runs. Every other writer stores 'Y-m-d H:i:s'; a bare
+                    // 'Y-m-d' sorts before it and would drop the row out of
+                    // every report range that starts on that day.
+                    'date' => $result['date'].' 00:00:00',
                     'dedup_hash' => $hash,
                     'created_at' => $now,
                     'updated_at' => $now,

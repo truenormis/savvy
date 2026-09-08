@@ -83,6 +83,14 @@ EOF
     cp "$ENV_FILE" "$DATA_DIR/.env_config"
 fi
 
+# Savvy <= 1.2 kept sessions and the cache in the container filesystem, so
+# every `docker compose pull` signed everyone out and dropped the cache. Move
+# them onto the data volume, matching what a fresh 1.3 install writes.
+if grep -q '^SESSION_DRIVER=file' "$ENV_FILE" || grep -q '^CACHE_STORE=file' "$ENV_FILE"; then
+    sed -i 's/^SESSION_DRIVER=file/SESSION_DRIVER=database/; s/^CACHE_STORE=file/CACHE_STORE=database/' "$ENV_FILE"
+    cp "$ENV_FILE" "$DATA_DIR/.env_config"
+fi
+
 php artisan migrate --force
 php artisan app:ensure-shards
 
