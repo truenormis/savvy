@@ -19,8 +19,8 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\UploadController;
-use App\Http\Controllers\WebauthnController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WebauthnController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -93,6 +93,15 @@ Route::middleware(['session', 'csrf'])->group(function () {
         Route::get('auth/sso/presets', [IdentityProviderController::class, 'presets']);
         Route::post('identity-providers/{identity_provider}/test', [IdentityProviderController::class, 'test']);
         Route::apiResource('identity-providers', IdentityProviderController::class);
+
+        Route::prefix('backups')->group(function () {
+            Route::get('/', [BackupController::class, 'index']);
+            Route::post('/', [BackupController::class, 'store']);
+            Route::post('upload', [BackupController::class, 'upload']);
+            Route::get('{backup}/download', [BackupController::class, 'download']);
+            Route::post('{backup}/restore', [BackupController::class, 'restore']);
+            Route::delete('{backup}', [BackupController::class, 'destroy']);
+        });
     });
 
     // Resources with write access control
@@ -172,16 +181,6 @@ Route::middleware(['session', 'csrf'])->group(function () {
         // Settings (admin + read-write can modify)
         Route::get('settings', [SettingsController::class, 'index']);
         Route::patch('settings', [SettingsController::class, 'update']);
-
-        // Backups
-        Route::prefix('backups')->group(function () {
-            Route::get('/', [BackupController::class, 'index']);
-            Route::post('/', [BackupController::class, 'store']);
-            Route::post('upload', [BackupController::class, 'upload']);
-            Route::get('{backup}/download', [BackupController::class, 'download']);
-            Route::post('{backup}/restore', [BackupController::class, 'restore']);
-            Route::delete('{backup}', [BackupController::class, 'destroy']);
-        });
 
         // Automation Rules
         Route::get('automation-rules/triggers', [AutomationRuleController::class, 'triggers']);

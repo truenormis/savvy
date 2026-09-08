@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useUiStore } from '@/stores/ui'
+import { useIsAdmin } from '@/hooks'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,6 +35,7 @@ interface MenuItem {
     to: string
     icon: LucideIcon
     label: string
+    adminOnly?: boolean
 }
 
 const mainItems: MenuItem[] = [
@@ -50,18 +52,20 @@ const settingsItems: MenuItem[] = [
     { to: '/settings/system', icon: Cog, label: 'System' },
     { to: '/settings/monitoring', icon: Activity, label: 'Monitoring' },
     { to: '/settings/security', icon: Shield, label: 'Security' },
-    { to: '/settings/providers', icon: KeyRound, label: 'SSO Providers' },
+    { to: '/settings/providers', icon: KeyRound, label: 'SSO Providers', adminOnly: true },
     { to: '/settings/import', icon: Upload, label: 'Import' },
-    { to: '/settings/backups', icon: Database, label: 'Backups' },
+    { to: '/settings/backups', icon: Database, label: 'Backups', adminOnly: true },
     { to: '/accounts', icon: CreditCard, label: 'Accounts' },
     { to: '/categories', icon: FolderTree, label: 'Categories' },
     { to: '/currencies', icon: Coins, label: 'Currencies' },
     { to: '/tags', icon: Hash, label: 'Tags' },
-    { to: '/users', icon: Users, label: 'Users' },
+    { to: '/users', icon: Users, label: 'Users', adminOnly: true },
 ]
 
 export function AppSidebar() {
     const location = useLocation()
+    const isAdmin = useIsAdmin()
+    const visibleSettingsItems = settingsItems.filter((item) => !item.adminOnly || isAdmin)
     const settingsOpen = useUiStore((state) => state.settingsOpen)
     const setSettingsOpen = useUiStore((state) => state.setSettingsOpen)
     const { setOpenMobile } = useSidebar()
@@ -133,7 +137,7 @@ export function AppSidebar() {
                                     </CollapsibleTrigger>
                                     <CollapsibleContent>
                                         <SidebarMenuSub>
-                                            {settingsItems.map(({ to, icon: Icon, label }) => (
+                                            {visibleSettingsItems.map(({ to, icon: Icon, label }) => (
                                                 <SidebarMenuSubItem key={to}>
                                                     <SidebarMenuSubButton asChild isActive={isActive(to)}>
                                                         <NavLink to={to}>
