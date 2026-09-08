@@ -1,11 +1,14 @@
 import { api } from './client'
-import { Currency, CurrencyFormData } from '@/types'
+import { Currency, CurrencyCatalogItem, CurrencyFormData } from '@/types'
 
 const ENDPOINT = '/currencies'
 
 export const currenciesApi = {
     getAll: () =>
         api.get<Currency[]>(ENDPOINT),
+
+    getCatalog: () =>
+        api.get<CurrencyCatalogItem[]>(`${ENDPOINT}/catalog`),
 
     getById: (id: number | string) =>
         api.get<Currency>(`${ENDPOINT}/${id}`),

@@ -1,8 +1,9 @@
 import { FormPage } from '@/components/shared'
 import { CurrencyForm } from '@/components/features/currencies'
-import { useCreateCurrency } from '@/hooks'
+import { useCreateCurrency, useSettings } from '@/hooks'
 
 export default function CurrencyCreatePage() {
+    const { data: settings } = useSettings()
     const createCurrency = useCreateCurrency('/currencies')
 
     return (
@@ -11,6 +12,7 @@ export default function CurrencyCreatePage() {
                 onSubmit={(data) => createCurrency.mutate(data)}
                 isSubmitting={createCurrency.isPending}
                 submitLabel="Create"
+                autoUpdateEnabled={settings?.auto_update_currencies}
             />
         </FormPage>
     )
