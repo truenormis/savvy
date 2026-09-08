@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\DTOs\ReportFilterData;
+use App\Enums\DebtType;
 use App\Models\Account;
 use App\Models\Currency;
 use App\Repositories\AccountBalanceRepository;
@@ -34,6 +35,8 @@ class NetWorthReportService
             ? round(($change / abs($previousTotal)) * 100, 1)
             : 0;
 
+        $exposure = array_sum(array_map(fn ($a) => abs($a['balance']), $current));
+
         $accounts = [];
         foreach ($current as $account) {
             $accounts[] = [
@@ -41,8 +44,8 @@ class NetWorthReportService
                 'name' => $account['name'],
                 'type' => $account['type'],
                 'balance' => round($account['balance'], 2),
-                'percentage' => $currentTotal > 0
-                    ? round(($account['balance'] / $currentTotal) * 100, 1)
+                'percentage' => $exposure > 0
+                    ? round((abs($account['balance']) / $exposure) * 100, 1)
                     : 0,
             ];
         }
@@ -88,17 +91,37 @@ class NetWorthReportService
 
     private function getNetWorthAtDate(Carbon $date, ReportFilterData $filters): array
     {
-        $accountsQuery = Account::query()
+        $at = $date->copy()->endOfDay()->toDateTimeString();
+
+        $assetsQuery = Account::query()
             ->where('is_active', true)
             ->regularAccounts()
             ->with('currency');
 
+        $debtsQuery = Account::query()
+            ->where('is_active', true)
+            ->debts()
+            ->with('currency');
+
         if (! empty($filters->accountIds)) {
-            $accountsQuery->whereIn('id', $filters->accountIds);
+            $assetsQuery->whereIn('id', $filters->accountIds);
+            $debtsQuery->whereIn('id', $filters->accountIds);
         }
 
-        $accounts = $accountsQuery->get();
+        $entries = $this->accountBalanceRepository->getBalancesAtDate($assetsQuery->get(), $at);
 
-        return $this->accountBalanceRepository->getBalancesAtDate($accounts, $date->copy()->endOfDay()->toDateTimeString());
+        foreach ($debtsQuery->get() as $debt) {
+            $remaining = max(0, $this->accountBalanceRepository->getDebtBalanceAtDate($debt, $at));
+            $signed = $debt->debt_type === DebtType::IOwe ? -$remaining : $remaining;
+
+            $entries[] = [
+                'id' => $debt->id,
+                'name' => $debt->name,
+                'type' => $debt->type,
+                'balance' => $signed * ($debt->currency->rate ?? 1),
+            ];
+        }
+
+        return $entries;
     }
 }

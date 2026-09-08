@@ -196,7 +196,7 @@ class DebtService
         $totalOwedToMe = 0;
 
         foreach ($debts as $debt) {
-            $remainingInBase = $debt->currency->convertToBase($debt->current_balance);
+            $remainingInBase = max(0, $debt->currency->convertToBase($debt->current_balance));
 
             if ($debt->debt_type === DebtType::IOwe) {
                 $totalIOwe += $remainingInBase;

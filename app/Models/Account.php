@@ -121,12 +121,33 @@ class Account extends Model
 
     private function calculateDebtBalance(): float
     {
-        $targetAmount = (float) $this->target_amount;
+        return $this->debt_principal - $this->debt_paid;
+    }
 
-        // Sum of all payments to this debt account
-        $payments = Transaction::where('to_account_id', $this->id)->sum('to_amount');
+    /**
+     * Everything ever owed on this debt: the opening amount plus anything
+     * later charged to it (a credit card is opened at 0 and grown by
+     * spending), less credits booked against it.
+     */
+    public function getDebtPrincipalAttribute(): float
+    {
+        if (! $this->isDebt()) {
+            return 0;
+        }
 
-        return $targetAmount - $payments;
+        $charges = $this->transactions()->where('type', 'expense')->sum('amount')
+            + $this->transactions()->whereIn('type', ['transfer', 'debt_payment'])->sum('amount');
+
+        $credits = $this->transactions()->whereIn('type', ['income', 'debt_collection'])->sum('amount');
+
+        return (float) $this->target_amount + (float) $charges - (float) $credits;
+    }
+
+    public function getDebtPaidAttribute(): float
+    {
+        return $this->isDebt()
+            ? (float) Transaction::where('to_account_id', $this->id)->sum('to_amount')
+            : 0;
     }
 
     public function getRemainingDebtAttribute(): float
@@ -136,13 +157,17 @@ class Account extends Model
 
     public function getPaymentProgressAttribute(): float
     {
-        if (! $this->isDebt() || $this->target_amount <= 0) {
+        if (! $this->isDebt()) {
             return 0;
         }
 
-        $paid = $this->target_amount - $this->current_balance;
+        $principal = $this->debt_principal;
 
-        return min(100, round(($paid / $this->target_amount) * 100, 2));
+        if ($principal <= 0) {
+            return 0;
+        }
+
+        return min(100, max(0, round(($this->debt_paid / $principal) * 100, 2)));
     }
 
     public function checkAndMarkAsPaidOff(): bool

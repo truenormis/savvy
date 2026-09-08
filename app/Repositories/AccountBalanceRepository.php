@@ -34,6 +34,25 @@ class AccountBalanceRepository
         return $initial + $income - $expense - $transferOut + $transferIn;
     }
 
+    public function getDebtBalanceAtDate(Account $debt, string $date): float
+    {
+        $charges = Transaction::where('account_id', $debt->id)
+            ->whereIn('type', ['expense', 'transfer', 'debt_payment'])
+            ->where('date', '<=', $date)
+            ->sum('amount');
+
+        $credits = Transaction::where('account_id', $debt->id)
+            ->whereIn('type', ['income', 'debt_collection'])
+            ->where('date', '<=', $date)
+            ->sum('amount');
+
+        $paid = Transaction::where('to_account_id', $debt->id)
+            ->where('date', '<=', $date)
+            ->sum('to_amount');
+
+        return (float) $debt->target_amount + (float) $charges - (float) $credits - (float) $paid;
+    }
+
     public function getBalancesAtDate(Collection $accounts, string $date): array
     {
         $result = [];
