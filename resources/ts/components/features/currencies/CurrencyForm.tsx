@@ -33,12 +33,12 @@ function filterCatalog(catalog: CurrencyCatalogItem[], query: string, field: 'co
         return []
     }
 
+    const startsWithQuery = (item: CurrencyCatalogItem) =>
+        (field === 'code' ? item.code : item.name).toLowerCase().startsWith(q)
+
     return catalog
-        .filter((item) =>
-            field === 'code'
-                ? item.code.toLowerCase().startsWith(q) || item.name.toLowerCase().includes(q)
-                : item.name.toLowerCase().includes(q) || item.code.toLowerCase().startsWith(q)
-        )
+        .filter((item) => item.code.toLowerCase().startsWith(q) || item.name.toLowerCase().includes(q))
+        .sort((a, b) => Number(startsWithQuery(b)) - Number(startsWithQuery(a)))
         .slice(0, 8)
 }
 
