@@ -4,6 +4,7 @@ namespace App\Builders;
 
 use App\DTOs\TransactionFilterData;
 use App\Models\Transaction;
+use App\Support\DateBoundary;
 use Illuminate\Database\Eloquent\Builder;
 
 class TransactionQueryBuilder
@@ -62,11 +63,11 @@ class TransactionQueryBuilder
         }
 
         if ($filters->startDate) {
-            $this->query->where('date', '>=', $filters->startDate);
+            $this->query->where('date', '>=', DateBoundary::start($filters->startDate));
         }
 
         if ($filters->endDate) {
-            $this->query->where('date', '<=', $filters->endDate);
+            $this->query->where('date', '<=', DateBoundary::end($filters->endDate));
         }
 
         if ($filters->minAmount) {

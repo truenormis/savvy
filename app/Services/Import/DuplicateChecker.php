@@ -3,6 +3,7 @@
 namespace App\Services\Import;
 
 use App\Models\Transaction;
+use App\Support\DateBoundary;
 
 class DuplicateChecker
 {
@@ -18,11 +19,11 @@ class DuplicateChecker
         $query = Transaction::where('account_id', $accountId);
 
         if ($startDate) {
-            $query->where('date', '>=', $startDate);
+            $query->where('date', '>=', DateBoundary::start($startDate));
         }
 
         if ($endDate) {
-            $query->where('date', '<=', $endDate);
+            $query->where('date', '<=', DateBoundary::end($endDate));
         }
 
         $transactions = $query->get(['id', 'date', 'amount', 'description']);
