@@ -36,6 +36,7 @@ import { toast } from 'sonner'
 import { QRCode } from 'react-qrcode-logo'
 import { useTheme } from '@/hooks'
 import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
+import { formatDate } from '@/lib/utils'
 
 type SetupStep = 'qr' | 'verify' | 'recovery'
 
@@ -237,9 +238,9 @@ export default function SecuritySettingsPage() {
                                                         {passkey.name || 'Unnamed passkey'}
                                                     </div>
                                                     <p className="text-sm leading-relaxed text-muted-foreground">
-                                                        Added {new Date(passkey.created_at).toLocaleDateString()}
+                                                        Added {formatDate(passkey.created_at)}
                                                         {passkey.last_used_at
-                                                            ? ` · Last used ${new Date(passkey.last_used_at).toLocaleDateString()}`
+                                                            ? ` · Last used ${formatDate(passkey.last_used_at)}`
                                                             : ' · Never used'}
                                                     </p>
                                                 </div>

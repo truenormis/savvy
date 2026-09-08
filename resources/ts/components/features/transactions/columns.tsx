@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { MoreHorizontal, Pencil, Trash2, Copy, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ChevronRight, Banknote, HandCoins } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 
 const TYPE_CONFIG = {
     income: { icon: ArrowDownLeft, color: 'text-green-600', bg: 'bg-green-100', label: 'Income' },
@@ -66,7 +66,7 @@ export function createTransactionColumns(
             header: 'Date',
             cell: ({ row }) => (
                 <span className="font-mono text-sm">
-                    {new Date(row.original.date).toLocaleDateString()}
+                    {formatDate(row.original.date)}
                 </span>
             ),
         },
@@ -124,7 +124,7 @@ export function createTransactionColumns(
                         <div className="text-xs text-muted-foreground">
                             {getSubDescription()}
                             {itemsCount != null && itemsCount > 0 && (
-                                <span className="ml-2 text-primary">({itemsCount} items)</span>
+                                <span className="ml-2 text-primary">({itemsCount} {itemsCount === 1 ? 'item' : 'items'})</span>
                             )}
                         </div>
                         {tags && tags.length > 0 && (

@@ -22,7 +22,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { RecurringTransaction } from '@/types'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 
 const typeConfig = {
     income: { icon: ArrowDownLeft, color: 'text-green-500', label: 'Income' },
@@ -127,11 +127,11 @@ export const createRecurringColumns = ({
             return (
                 <div>
                     <p className={cn('font-medium', isToday && 'text-orange-500')}>
-                        {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : date.toLocaleDateString()}
+                        {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : formatDate(date)}
                     </p>
                     {row.original.lastRunDate && (
                         <p className="text-xs text-muted-foreground">
-                            Last: {new Date(row.original.lastRunDate).toLocaleDateString()}
+                            Last: {formatDate(row.original.lastRunDate)}
                         </p>
                     )}
                 </div>
