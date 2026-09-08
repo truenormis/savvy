@@ -23,7 +23,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Debt } from '@/types'
-import { formatAmount as sharedFormatAmount, formatDate } from '@/lib/utils'
+import { formatAmount as sharedFormatAmount, formatDate, today } from '@/lib/utils'
 
 const DEBT_TYPE_CONFIG = {
     i_owe: {
@@ -136,12 +136,11 @@ export const createDebtColumns = (
         cell: ({ row }) => {
             if (!row.original.dueDate) return <span className="text-muted-foreground">-</span>
 
-            const dueDate = new Date(row.original.dueDate)
-            const isOverdue = !row.original.isPaidOff && dueDate < new Date()
+            const isOverdue = !row.original.isPaidOff && row.original.dueDate < today()
 
             return (
                 <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
-                    {formatDate(dueDate)}
+                    {formatDate(row.original.dueDate)}
                 </span>
             )
         },

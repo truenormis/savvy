@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/form'
 import { transactionSchema, TransactionFormValues, TransactionFormInput } from '@/schemas/transactions'
 import { useAccounts, useCategories, useTags } from '@/hooks'
-import { cn, toId, formatAmount } from '@/lib/utils'
+import { cn, toId, formatAmount, today } from '@/lib/utils'
 import { Plus, Trash2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { AccountSelect } from '@/components/shared/AccountSelect'
@@ -73,7 +73,6 @@ export function TransactionForm({
     const { data: tags } = useTags()
 
     const formDefaults = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0]
         return {
             type: defaultValues?.type ?? 'expense' as const,
             account_id: defaultValues?.account_id ?? 0,
@@ -82,7 +81,7 @@ export function TransactionForm({
             amount: defaultValues?.amount ?? 0,
             to_amount: defaultValues?.to_amount ?? null,
             description: defaultValues?.description ?? '',
-            date: defaultValues?.date || today,
+            date: defaultValues?.date || today(),
             items: defaultValues?.items ?? [],
             tag_ids: defaultValues?.tag_ids ?? [],
         }

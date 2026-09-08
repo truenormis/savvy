@@ -1,4 +1,5 @@
 import type { CashFlowGroupBy } from '@/api/reports'
+import { parseDate, toDateString } from '@/lib/utils'
 
 export type PeriodType = 'month' | 'quarter' | 'year' | 'ytd' | 'custom'
 export type CompareType = 'none' | 'previous_period' | 'same_period_last_year'
@@ -17,14 +18,6 @@ export interface ReportFilters {
     tagIds: number[]
 }
 
-// Helper to format date as YYYY-MM-DD (timezone-safe)
-function formatDate(date: Date): string {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-}
-
 // Helper to format date as YYYY-MM (timezone-safe)
 function formatYearMonth(date: Date): string {
     const year = date.getFullYear()
@@ -39,8 +32,8 @@ export const DEFAULT_FILTERS: ReportFilters = {
     selectedMonth: formatYearMonth(now),
     selectedQuarter: `${now.getFullYear()}-Q${Math.ceil((now.getMonth() + 1) / 3)}`,
     selectedYear: now.getFullYear().toString(),
-    customStartDate: formatDate(new Date(now.getFullYear(), now.getMonth(), 1)),
-    customEndDate: formatDate(now),
+    customStartDate: toDateString(new Date(now.getFullYear(), now.getMonth(), 1)),
+    customEndDate: toDateString(now),
     compareWith: 'previous_period',
     accountIds: [],
     categoryIds: [],
@@ -58,8 +51,9 @@ export function defaultGroupBy(filters: ReportFilters): CashFlowGroupBy {
         case 'ytd':
             return 'week'
         case 'custom': {
-            const start = new Date(filters.customStartDate)
-            const end = new Date(filters.customEndDate)
+            const start = parseDate(filters.customStartDate)
+            const end = parseDate(filters.customEndDate)
+            if (!start || !end) return 'day'
             const days = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1
             if (days <= 45) return 'day'
             if (days <= 185) return 'week'
