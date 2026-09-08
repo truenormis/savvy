@@ -43,23 +43,23 @@ EOF
 
     for f in database queue cache sessions; do
         touch "$DATA_DIR/$f.sqlite"
-        chmod 664 "$DATA_DIR/$f.sqlite"
+        chmod 664 "$DATA_DIR/$f.sqlite" 2>/dev/null || true
     done
 
     mkdir -p "$DATA_DIR/backups"
-    chmod 775 "$DATA_DIR/backups"
+    chmod 775 "$DATA_DIR/backups" 2>/dev/null || true
 
     mkdir -p "$DATA_DIR/uploads"
-    chmod 775 "$DATA_DIR/uploads"
+    chmod 775 "$DATA_DIR/uploads" 2>/dev/null || true
 
     php artisan migrate --force --seed
 
     cp "$ENV_FILE" "$DATA_DIR/.env_config"
 fi
 
-[ -f "$DATA_DIR/database.sqlite" ] && chmod 664 "$DATA_DIR/database.sqlite"
-[ ! -d "$DATA_DIR/backups" ] && mkdir -p "$DATA_DIR/backups" && chmod 775 "$DATA_DIR/backups"
-[ ! -d "$DATA_DIR/uploads" ] && mkdir -p "$DATA_DIR/uploads" && chmod 775 "$DATA_DIR/uploads"
+[ -f "$DATA_DIR/database.sqlite" ] && chmod 664 "$DATA_DIR/database.sqlite" 2>/dev/null || true
+[ ! -d "$DATA_DIR/backups" ] && mkdir -p "$DATA_DIR/backups" && chmod 775 "$DATA_DIR/backups" 2>/dev/null || true
+[ ! -d "$DATA_DIR/uploads" ] && mkdir -p "$DATA_DIR/uploads" && chmod 775 "$DATA_DIR/uploads" 2>/dev/null || true
 
 if ! grep -q '^UPLOAD_ROOT=' "$ENV_FILE"; then
     echo "UPLOAD_ROOT=$DATA_DIR/uploads" >> "$ENV_FILE"
@@ -67,7 +67,7 @@ if ! grep -q '^UPLOAD_ROOT=' "$ENV_FILE"; then
 fi
 
 for f in queue cache sessions; do
-    [ -f "$DATA_DIR/$f.sqlite" ] || { touch "$DATA_DIR/$f.sqlite"; chmod 664 "$DATA_DIR/$f.sqlite"; }
+    [ -f "$DATA_DIR/$f.sqlite" ] || { touch "$DATA_DIR/$f.sqlite"; chmod 664 "$DATA_DIR/$f.sqlite" 2>/dev/null || true; }
 done
 
 if ! grep -q '^DB_QUEUE_CONNECTION=' "$ENV_FILE"; then
