@@ -11,11 +11,11 @@ import {
     FormMessage,
     FormDescription,
 } from '@/components/ui/form'
-import { currencySchema, CurrencyFormData } from '@/schemas'
+import { currencySchema, CurrencyFormData, CurrencyFormInput } from '@/schemas'
 import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface CurrencyFormProps {
-    defaultValues?: Partial<CurrencyFormData>
+    defaultValues?: Partial<CurrencyFormInput>
     onSubmit: (data: CurrencyFormData) => void
     isSubmitting?: boolean
     submitLabel?: string
@@ -33,7 +33,7 @@ export function CurrencyForm({
     autoUpdateEnabled = false,
     isBase = false,
 }: CurrencyFormProps) {
-    const form = useForm<CurrencyFormData>({
+    const form = useForm<CurrencyFormInput, unknown, CurrencyFormData>({
         resolver: zodResolver(currencySchema),
         defaultValues: {
             code: '',

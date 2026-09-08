@@ -5,6 +5,8 @@ import { Tag } from './tags'
 
 export type TransactionType = 'income' | 'expense' | 'transfer' | 'debt_payment' | 'debt_collection'
 
+export type TransactionFormType = 'income' | 'expense' | 'transfer'
+
 export interface TransactionItem {
     id?: number
     name: string
@@ -37,11 +39,11 @@ export interface TransactionItemFormData {
 export interface TransactionFormData {
     type: TransactionType
     account_id: number
-    to_account_id?: number
-    category_id?: number
+    to_account_id?: number | null
+    category_id?: number | null
     amount: number
-    to_amount?: number
-    exchange_rate?: number
+    to_amount?: number | null
+    exchange_rate?: number | null
     description?: string
     date: string
     items?: TransactionItemFormData[]

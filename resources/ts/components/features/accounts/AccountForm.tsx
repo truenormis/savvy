@@ -19,7 +19,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { accountSchema, AccountFormData } from '@/schemas'
+import { accountSchema, AccountFormData, AccountFormInput } from '@/schemas'
 import { useCurrencies } from '@/hooks'
 import { REGULAR_ACCOUNT_TYPE_CONFIG, REGULAR_ACCOUNT_TYPES } from '@/constants'
 import type { RegularAccountType } from '@/types'
@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
 import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface AccountFormProps {
-    defaultValues?: Partial<AccountFormData>
+    defaultValues?: Partial<AccountFormInput>
     onSubmit: (data: AccountFormData) => void
     isSubmitting?: boolean
     submitLabel?: string
@@ -41,7 +41,7 @@ export function AccountForm({
 }: AccountFormProps) {
     const { data: currencies, isLoading: currenciesLoading } = useCurrencies()
 
-    const form = useForm<AccountFormData>({
+    const form = useForm<AccountFormInput, unknown, AccountFormData>({
         resolver: zodResolver(accountSchema),
         defaultValues: {
             name: '',

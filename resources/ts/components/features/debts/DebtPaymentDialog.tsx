@@ -27,9 +27,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { debtPaymentSchema, DebtPaymentFormData } from '@/schemas'
+import { debtPaymentSchema, DebtPaymentFormData, DebtPaymentFormInput } from '@/schemas'
 import { useAccounts } from '@/hooks'
 import { Debt } from '@/types'
+import { formatAmount as sharedFormatAmount } from '@/lib/utils'
 
 interface DebtPaymentDialogProps {
     debt: Debt | null
@@ -50,7 +51,7 @@ export function DebtPaymentDialog({
 }: DebtPaymentDialogProps) {
     const { data: accounts, isLoading: accountsLoading } = useAccounts({ active: true, exclude_debts: true })
 
-    const form = useForm<DebtPaymentFormData>({
+    const form = useForm<DebtPaymentFormInput, unknown, DebtPaymentFormData>({
         resolver: zodResolver(debtPaymentSchema),
         defaultValues: {
             account_id: 0,
@@ -66,10 +67,8 @@ export function DebtPaymentDialog({
         }
     }
 
-    const formatAmount = (amount: number) => {
-        if (!debt?.currency) return amount.toFixed(2)
-        return `${debt.currency.symbol}${amount.toFixed(debt.currency.decimals)}`
-    }
+    const formatAmount = (amount: number) =>
+        sharedFormatAmount(amount, debt?.currency?.decimals ?? 2, debt?.currency?.symbol ?? '')
 
     const title = mode === 'payment' ? 'Make Payment' : 'Collect Payment'
     const description = mode === 'payment'

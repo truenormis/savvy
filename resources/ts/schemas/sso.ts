@@ -24,4 +24,5 @@ export const identityProviderSchema = z.object({
     link_by_email: z.boolean().default(true),
 })
 
-export type IdentityProviderFormValues = z.infer<typeof identityProviderSchema>
+export type IdentityProviderFormValues = z.output<typeof identityProviderSchema>
+export type IdentityProviderFormInput = z.input<typeof identityProviderSchema>

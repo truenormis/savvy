@@ -19,13 +19,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { debtSchema, DebtFormData } from '@/schemas'
+import { debtSchema, DebtFormData, DebtFormInput } from '@/schemas'
 import { useCurrencies } from '@/hooks'
 import { Banknote, HandCoins } from 'lucide-react'
 import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface DebtFormProps {
-    defaultValues?: Partial<DebtFormData>
+    defaultValues?: Partial<DebtFormInput>
     onSubmit: (data: DebtFormData) => void
     isSubmitting?: boolean
     submitLabel?: string
@@ -56,7 +56,7 @@ export function DebtForm({
 }: DebtFormProps) {
     const { data: currencies, isLoading: currenciesLoading } = useCurrencies()
 
-    const form = useForm<DebtFormData>({
+    const form = useForm<DebtFormInput, unknown, DebtFormData>({
         resolver: zodResolver(debtSchema),
         defaultValues: {
             name: '',

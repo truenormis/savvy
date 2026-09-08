@@ -25,14 +25,14 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FormWrapper } from '@/components/shared/FormWrapper'
-import { identityProviderSchema, IdentityProviderFormValues } from '@/schemas/sso'
+import { identityProviderSchema, IdentityProviderFormValues, IdentityProviderFormInput } from '@/schemas/sso'
 import { useSsoPresets } from '@/hooks/use-sso'
 import { BrandIcon, brandVars } from './BrandIcon'
 import type { LucideIcon } from 'lucide-react'
 import type { PresetField } from '@/types/sso'
 
 interface IdentityProviderFormProps {
-    defaultValues?: Partial<IdentityProviderFormValues>
+    defaultValues?: Partial<IdentityProviderFormInput>
     onSubmit: (data: IdentityProviderFormValues) => void
     isSubmitting?: boolean
     submitLabel?: string
@@ -118,7 +118,7 @@ export function IdentityProviderForm({
 }: IdentityProviderFormProps) {
     const { data: presets } = useSsoPresets()
 
-    const form = useForm<IdentityProviderFormValues>({
+    const form = useForm<IdentityProviderFormInput, unknown, IdentityProviderFormValues>({
         resolver: zodResolver(identityProviderSchema),
         defaultValues: {
             name: '',

@@ -42,7 +42,7 @@ export async function multipartUpload(
         },
 
         listParts: async (_uppyFile, { uploadId, key }) => {
-            return uploadsApi.listParts(uploadId, key)
+            return uploadsApi.listParts(String(uploadId), String(key))
         },
 
         signPart: async (_uppyFile, { uploadId, key, partNumber }) => {
@@ -71,7 +71,7 @@ export async function multipartUpload(
         },
 
         abortMultipartUpload: async (_uppyFile, { uploadId, key }) => {
-            await uploadsApi.abort(uploadId, key)
+            await uploadsApi.abort(String(uploadId), String(key))
         },
     })
 
@@ -104,9 +104,15 @@ export async function multipartUpload(
         const result = await uppy.upload()
 
         if (result?.failed && result.failed.length > 0) {
-            const error = result.failed[0].error
+            const error: unknown = result.failed[0].error
 
-            throw new Error(typeof error === 'string' ? error : error?.message || 'Upload failed')
+            if (typeof error === 'string') {
+                throw new Error(error)
+            }
+
+            const message = error instanceof Error ? error.message : undefined
+
+            throw new Error(message || 'Upload failed')
         }
 
         return {

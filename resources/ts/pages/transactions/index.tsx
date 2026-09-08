@@ -23,10 +23,10 @@ import {
 import { createTransactionColumns } from '@/components/features/transactions'
 import { useTransactions, useDeleteTransaction, useDuplicateTransaction, useCategories, useTags } from '@/hooks'
 import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
-import { TransactionType, Transaction } from '@/types'
+import { TransactionFormType, Transaction } from '@/types'
 import { cn } from '@/lib/utils'
 
-const TYPE_FILTERS: { value: TransactionType | null; label: string; icon?: typeof ArrowDownLeft }[] = [
+const TYPE_FILTERS: { value: TransactionFormType | null; label: string; icon?: typeof ArrowDownLeft }[] = [
     { value: null, label: 'All' },
     { value: 'income', label: 'Income', icon: ArrowDownLeft },
     { value: 'expense', label: 'Expense', icon: ArrowUpRight },

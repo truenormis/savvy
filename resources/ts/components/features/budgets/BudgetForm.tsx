@@ -19,7 +19,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { budgetSchema, BudgetFormData } from '@/schemas'
+import { budgetSchema, BudgetFormData, BudgetFormInput } from '@/schemas'
 import { useCategories, useCurrencies, useTags } from '@/hooks'
 import { Category } from '@/types'
 import { Badge } from '@/components/ui/badge'
@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
 import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface BudgetFormProps {
-    defaultValues?: Partial<BudgetFormData>
+    defaultValues?: Partial<BudgetFormInput>
     onSubmit: (data: BudgetFormData) => void
     isSubmitting?: boolean
     submitLabel?: string
@@ -50,7 +50,7 @@ export function BudgetForm({
     const { data: currencies } = useCurrencies()
     const { data: tags } = useTags()
 
-    const form = useForm<BudgetFormData>({
+    const form = useForm<BudgetFormInput, unknown, BudgetFormData>({
         resolver: zodResolver(budgetSchema),
         defaultValues: {
             name: '',
