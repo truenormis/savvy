@@ -221,9 +221,8 @@ class AutomationService
             return false;
         }
 
-        $currentTagIds = $entity->tags->pluck('id')->toArray();
-        $newTagIds = array_unique(array_merge($currentTagIds, $tagIds));
-        $entity->tags()->sync($newTagIds);
+        $entity->tags()->syncWithoutDetaching($tagIds);
+        $entity->unsetRelation('tags');
 
         return true;
     }
@@ -240,9 +239,8 @@ class AutomationService
             return false;
         }
 
-        $currentTagIds = $entity->tags->pluck('id')->toArray();
-        $newTagIds = array_diff($currentTagIds, $tagIds);
-        $entity->tags()->sync($newTagIds);
+        $entity->tags()->detach($tagIds);
+        $entity->unsetRelation('tags');
 
         return true;
     }
