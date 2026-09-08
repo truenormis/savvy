@@ -2,6 +2,7 @@
 
 namespace App\DTOs;
 
+use App\Support\AppTime;
 use Carbon\Carbon;
 
 readonly class ReportFilterData
@@ -73,7 +74,7 @@ readonly class ReportFilterData
         if ($this->periodValue && preg_match('/^(\d{4})-(\d{2})$/', $this->periodValue, $matches)) {
             $date = Carbon::createFromDate((int) $matches[1], (int) $matches[2], 1);
         } else {
-            $date = Carbon::now();
+            $date = AppTime::now();
         }
 
         return [
@@ -90,7 +91,7 @@ readonly class ReportFilterData
             $month = ($quarter - 1) * 3 + 1;
             $date = Carbon::createFromDate($year, $month, 1);
         } else {
-            $date = Carbon::now();
+            $date = AppTime::now();
         }
 
         return [
@@ -104,7 +105,7 @@ readonly class ReportFilterData
         if ($this->periodValue && preg_match('/^(\d{4})$/', $this->periodValue, $matches)) {
             $date = Carbon::createFromDate((int) $matches[1], 1, 1);
         } else {
-            $date = Carbon::now();
+            $date = AppTime::now();
         }
 
         return [
@@ -115,7 +116,7 @@ readonly class ReportFilterData
 
     private function getYtdRange(): array
     {
-        $now = Carbon::now();
+        $now = AppTime::now();
 
         return [
             'start' => $now->copy()->startOfYear(),
@@ -125,8 +126,8 @@ readonly class ReportFilterData
 
     private function getCustomRange(): array
     {
-        $start = $this->startDate ? Carbon::parse($this->startDate) : Carbon::now()->startOfMonth();
-        $end = $this->endDate ? Carbon::parse($this->endDate) : Carbon::now()->endOfMonth();
+        $start = $this->startDate ? Carbon::parse($this->startDate) : AppTime::now()->startOfMonth();
+        $end = $this->endDate ? Carbon::parse($this->endDate) : AppTime::now()->endOfMonth();
 
         return [
             'start' => $start->startOfDay(),

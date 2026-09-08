@@ -6,6 +6,7 @@ use App\Enums\TriggerType;
 use App\Models\AutomationRule;
 use App\Models\AutomationRuleLog;
 use App\Models\Transaction;
+use App\Support\AppTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
@@ -286,7 +287,7 @@ class AutomationService
             'to_account_id' => $toAccountId,
             'amount' => $amount,
             'description' => $this->parseTemplate($description, $entity),
-            'date' => now()->toDateString(),
+            'date' => AppTime::today(),
         ]);
 
         return $transfer->id;

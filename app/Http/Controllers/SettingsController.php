@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\IdentityProvider;
 use App\Services\SettingsService;
+use App\Support\AppTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SettingsController extends Controller
 {
@@ -23,6 +25,7 @@ class SettingsController extends Controller
             'sso_allow_signup' => 'sometimes|boolean',
             'password_login_enabled' => 'sometimes|boolean',
             'sso_require_verified_email' => 'sometimes|boolean',
+            'timezone' => ['sometimes', 'string', Rule::in(AppTime::identifiers())],
         ]);
 
         if (($data['password_login_enabled'] ?? true) === false && ! IdentityProvider::where('enabled', true)->exists()) {

@@ -15,6 +15,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SsoController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\TimezoneController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Controllers\TwoFactorController;
@@ -180,6 +181,7 @@ Route::middleware(['session', 'csrf'])->group(function () {
         });
 
         // Settings (admin + read-write can modify)
+        Route::get('timezones', [TimezoneController::class, 'index']);
         Route::get('settings', [SettingsController::class, 'index']);
         Route::patch('settings', [SettingsController::class, 'update']);
 

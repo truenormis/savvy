@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\RecurringFrequency;
 use App\Enums\TransactionType;
+use App\Support\AppTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -73,10 +74,10 @@ class RecurringTransaction extends Model
     public function scopeDue(Builder $query): Builder
     {
         return $query->active()
-            ->where('next_run_date', '<=', now()->toDateString())
+            ->whereDate('next_run_date', '<=', AppTime::today())
             ->where(function ($q) {
                 $q->whereNull('end_date')
-                    ->orWhere('end_date', '>=', now()->toDateString());
+                    ->orWhereDate('end_date', '>=', AppTime::today());
             });
     }
 
