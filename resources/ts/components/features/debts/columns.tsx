@@ -23,6 +23,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Debt } from '@/types'
+import { formatAmount as sharedFormatAmount, formatDate } from '@/lib/utils'
 
 const DEBT_TYPE_CONFIG = {
     i_owe: {
@@ -40,8 +41,7 @@ const DEBT_TYPE_CONFIG = {
 }
 
 function formatAmount(amount: number, currency?: { symbol: string; decimals: number }) {
-    if (!currency) return amount.toFixed(2)
-    return `${currency.symbol}${amount.toFixed(currency.decimals)}`
+    return sharedFormatAmount(amount, currency?.decimals ?? 2, currency?.symbol ?? '')
 }
 
 interface ColumnActions {
@@ -141,7 +141,7 @@ export const createDebtColumns = (
 
             return (
                 <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
-                    {dueDate.toLocaleDateString()}
+                    {formatDate(dueDate)}
                 </span>
             )
         },

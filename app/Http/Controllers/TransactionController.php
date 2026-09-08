@@ -28,7 +28,7 @@ class TransactionController extends Controller
 
         if ($request->boolean('with_summary')) {
             $collection->additional([
-                'summary' => $this->transactionService->getSummary($filters)
+                'summary' => $this->transactionService->getSummary($filters),
             ]);
         }
 

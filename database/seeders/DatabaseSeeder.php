@@ -11,6 +11,11 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     *
+     * Reference data only. DemoSeeder is deliberately NOT listed here: it
+     * wipes accounts, transactions, budgets, recurring transactions and
+     * automation rules, and it creates demo logins with published passwords.
+     * Run it explicitly with `php artisan db:seed --class=DemoSeeder`.
      */
     public function run(): void
     {

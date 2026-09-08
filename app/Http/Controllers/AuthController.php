@@ -3,8 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
+use App\Http\Concerns\IssuesAuthSession;
+use App\Models\AuthSession;
+use App\Models\IdentityProvider;
 use App\Models\User;
-use App\Services\JwtService;
+use App\Services\Auth\AuthCookies;
+use App\Services\Auth\AuthSessionService;
+use App\Services\Auth\TwoFactorChallengeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -12,30 +17,26 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    use IssuesAuthSession;
+
     public function __construct(
-        private JwtService $jwt
+        private AuthSessionService $sessions,
+        private TwoFactorChallengeService $challenges,
+        private AuthCookies $cookies,
     ) {}
 
-    /**
-     * Check if registration is needed (no users exist)
-     */
     public function status(): JsonResponse
     {
         return response()->json([
             'needs_registration' => User::count() === 0,
+            'password_login_enabled' => ! $this->passwordLoginDisabled(),
         ]);
     }
 
-    /**
-     * Register the first user (only when no users exist)
-     */
     public function register(Request $request): JsonResponse
     {
-        // Only allow registration if no users exist
         if (User::count() > 0) {
-            return response()->json([
-                'message' => 'Registration is closed.',
-            ], 403);
+            return response()->json(['message' => 'Registration is closed.'], 403);
         }
 
         $data = $request->validate([
@@ -51,10 +52,7 @@ class AuthController extends Controller
             'role' => UserRole::Admin,
         ]);
 
-        return response()->json([
-            'user' => $this->userResponse($user),
-            'token' => $this->jwt->encode($user),
-        ], 201);
+        return $this->issueSession($user, $request, 201);
     }
 
     public function login(Request $request): JsonResponse
@@ -64,49 +62,64 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
+        if ($this->passwordLoginDisabled()) {
+            throw ValidationException::withMessages([
+                'email' => ['Password sign-in is disabled. Use single sign-on instead.'],
+            ]);
+        }
+
         $user = User::where('email', $data['email'])->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+        if (! $user || $user->is_sso_only || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Invalid credentials.'],
             ]);
         }
 
-        // Check if 2FA is enabled
         if ($user->hasTwoFactorEnabled()) {
             return response()->json([
                 'requires_2fa' => true,
-                'two_factor_token' => $this->jwt->encodeTwoFactorToken($user),
+                'two_factor_token' => $this->challenges->issue($user),
             ]);
         }
 
-        return response()->json([
-            'user' => $this->userResponse($user),
-            'token' => $this->jwt->encode($user),
-        ]);
+        return $this->issueSession($user, $request);
+    }
+
+    /**
+     * Password sign-in is blocked only while an enabled SSO provider exists, so
+     * disabling SSO (or having none) can never lock the instance out.
+     */
+    private function passwordLoginDisabled(): bool
+    {
+        return ! settings('password_login_enabled', true)
+            && IdentityProvider::where('enabled', true)->exists();
     }
 
     public function me(Request $request): JsonResponse
     {
+        $token = $this->cookies->readToken($request);
+        $session = $token ? $this->sessions->resolve($token) : null;
+
         return response()->json([
-            'user' => $this->userResponse($request->user()),
+            'user' => $session?->user ? $this->sessionUser($session->user) : null,
         ]);
     }
 
-    public function refresh(Request $request): JsonResponse
+    public function logout(Request $request): JsonResponse
     {
-        return response()->json([
-            'token' => $this->jwt->encode($request->user()),
-        ]);
-    }
+        $session = $request->attributes->get('auth_session');
 
-    private function userResponse(User $user): array
-    {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->role,
-        ];
+        if ($session instanceof AuthSession) {
+            $this->sessions->revoke($session);
+        }
+
+        $response = response()->json(['message' => 'Logged out.']);
+
+        foreach ($this->cookies->forget($request) as $cookie) {
+            $response->withCookie($cookie);
+        }
+
+        return $response;
     }
 }

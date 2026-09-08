@@ -9,6 +9,7 @@ import { createDebtColumns, DebtPaymentDialog } from '@/components/features/debt
 import { useDebtsWithSummary, useDeleteDebt, useDebtPayment, useDebtCollection, useReopenDebt } from '@/hooks'
 import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
 import { Debt, DebtPaymentFormData } from '@/types'
+import { formatAmount as sharedFormatAmount } from '@/lib/utils'
 
 export default function DebtsPage() {
     const [includeCompleted, setIncludeCompleted] = useState(false)
@@ -61,8 +62,7 @@ export default function DebtsPage() {
     })
 
     const formatCurrency = (amount: number) => {
-        if (!summary?.currency) return amount.toFixed(2)
-        return `${summary.currency} ${amount.toFixed(summary.decimals ?? 2)}`
+        return sharedFormatAmount(amount, summary?.decimals ?? 2, summary?.currency ?? '')
     }
 
     return (

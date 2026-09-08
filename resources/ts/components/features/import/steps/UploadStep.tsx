@@ -1,19 +1,33 @@
 import { useCallback, useState } from 'react'
-import { Upload, FileText, AlertCircle, X } from 'lucide-react'
+import { Upload, FileText, AlertCircle, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import type { CsvParseResult } from '@/types/import'
 
 interface UploadStepProps {
     onFileSelect: (file: File) => void
+    onCancelUpload: () => void
     parseResult: CsvParseResult | null
-    isLoading: boolean
+    isUploading: boolean
+    isParsing: boolean
+    uploadPercentage: number
     error: string | null
 }
 
-export function UploadStep({ onFileSelect, parseResult, isLoading, error }: UploadStepProps) {
+export function UploadStep({
+    onFileSelect,
+    onCancelUpload,
+    parseResult,
+    isUploading,
+    isParsing,
+    uploadPercentage,
+    error,
+}: UploadStepProps) {
     const [dragActive, setDragActive] = useState(false)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+    const isLoading = isUploading || isParsing
 
     const handleDrag = useCallback((e: React.DragEvent) => {
         e.preventDefault()
@@ -58,7 +72,7 @@ export function UploadStep({ onFileSelect, parseResult, isLoading, error }: Uplo
                 className={cn(
                     'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
                     dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25',
-                    isLoading && 'opacity-50 pointer-events-none'
+                    isLoading && 'opacity-75 pointer-events-none'
                 )}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -79,18 +93,19 @@ export function UploadStep({ onFileSelect, parseResult, isLoading, error }: Uplo
                         <FileText className="size-12 text-primary" />
                         <div className="flex items-center gap-2">
                             <span className="font-medium">{selectedFile.name}</span>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-6"
-                                onClick={clearFile}
-                                disabled={isLoading}
-                            >
-                                <X className="size-4" />
-                            </Button>
+                            {!isLoading && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-6"
+                                    onClick={clearFile}
+                                >
+                                    <X className="size-4" />
+                                </Button>
+                            )}
                         </div>
                         <span className="text-sm text-muted-foreground">
-                            {(selectedFile.size / 1024).toFixed(1)} KB
+                            {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                         </span>
                     </div>
                 ) : (
@@ -101,12 +116,36 @@ export function UploadStep({ onFileSelect, parseResult, isLoading, error }: Uplo
                                 Drop CSV file here or click to browse
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                Maximum file size: 5MB
+                                Parallel multipart upload — up to 512MB
                             </div>
                         </div>
                     </label>
                 )}
             </div>
+
+            {/* Upload progress */}
+            {isUploading && (
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Uploading parts in parallel…</span>
+                        <div className="flex items-center gap-3">
+                            <span className="font-mono">{uploadPercentage}%</span>
+                            <Button variant="ghost" size="sm" onClick={onCancelUpload}>
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                    <Progress value={uploadPercentage} />
+                </div>
+            )}
+
+            {/* Parsing indicator */}
+            {isParsing && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" />
+                    <span>Parsing file on the server…</span>
+                </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -117,7 +156,7 @@ export function UploadStep({ onFileSelect, parseResult, isLoading, error }: Uplo
             )}
 
             {/* Parse Result Preview */}
-            {parseResult && (
+            {parseResult && !isLoading && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="font-medium">File Preview</h3>

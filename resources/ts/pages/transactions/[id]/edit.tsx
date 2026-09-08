@@ -3,7 +3,7 @@ import { useQueryState, parseAsStringLiteral } from 'nuqs'
 import { FormPage } from '@/components/shared'
 import { TransactionForm } from '@/components/features/transactions'
 import { useTransaction, useUpdateTransaction } from '@/hooks'
-import { TransactionType } from '@/types'
+import { TransactionFormType } from '@/types'
 
 export default function TransactionEditPage() {
     const { id } = useParams<{ id: string }>()
@@ -16,7 +16,7 @@ export default function TransactionEditPage() {
 
     const defaultValues = transaction
         ? {
-              type: (type ?? transaction.type) as TransactionType,
+              type: (type ?? transaction.type) as TransactionFormType,
               account_id: transaction.account.id,
               to_account_id: transaction.toAccount?.id ?? null,
               category_id: transaction.category?.id ?? null,
@@ -38,6 +38,13 @@ export default function TransactionEditPage() {
         <FormPage title="Edit Transaction" backLink="/transactions" isLoading={isLoading}>
             <TransactionForm
                 defaultValues={defaultValues}
+                editing={transaction ? {
+                    type: transaction.type as TransactionFormType,
+                    accountId: transaction.account.id,
+                    amount: transaction.amount,
+                    toAccountId: transaction.toAccount?.id ?? null,
+                    toAmount: transaction.toAmount ?? null,
+                } : undefined}
                 onTypeChange={setType}
                 onSubmit={(data) => updateTransaction.mutate({ id: id!, data })}
                 isSubmitting={updateTransaction.isPending}

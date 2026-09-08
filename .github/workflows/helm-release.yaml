@@ -1,0 +1,75 @@
+name: Release Chart
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (semver, no leading v)'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chart-release
+  cancel-in-progress: false
+
+env:
+  CHARTMUSEUM_URL: https://charts.trysavvy.dev
+  CHART_DIR: deploy/helm/savvy
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          V="${{ github.event.inputs.version }}"
+          [ -z "$V" ] && V="${GITHUB_REF_NAME#v}"
+          if ! printf '%s' "$V" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Invalid semver: '$V'"; exit 1
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Lint chart
+        run: helm lint "$CHART_DIR"
+
+      - name: Package chart
+        run: |
+          helm package "$CHART_DIR" \
+            --version "${{ steps.ver.outputs.version }}" \
+            --app-version "${{ steps.ver.outputs.version }}"
+
+      - name: Push to ChartMuseum
+        env:
+          CM_USER: ${{ secrets.CHARTMUSEUM_USERNAME }}
+          CM_PASS: ${{ secrets.CHARTMUSEUM_PASSWORD }}
+        run: |
+          PKG="savvy-${{ steps.ver.outputs.version }}.tgz"
+          CODE=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
+            -u "$CM_USER:$CM_PASS" \
+            -F "chart=@${PKG}" \
+            "${CHARTMUSEUM_URL}/api/charts")
+          echo "HTTP $CODE"; cat /tmp/resp.json; echo
+          case "$CODE" in
+            201) echo "✅ published ${{ steps.ver.outputs.version }}" ;;
+            409) echo "::error::version ${{ steps.ver.outputs.version }} already exists (charts are immutable)"; exit 1 ;;
+            401|403) echo "::error::auth rejected by ChartMuseum — check CHARTMUSEUM_USERNAME/PASSWORD secrets"; exit 1 ;;
+            *)   echo "::error::ChartMuseum push failed (HTTP $CODE)"; exit 1 ;;
+          esac
+
+      - name: Verify chart is downloadable
+        run: |
+          helm repo add savvy "$CHARTMUSEUM_URL"
+          helm repo update savvy
+          helm pull savvy/savvy --version "${{ steps.ver.outputs.version }}"
+          echo "✅ pullable from $CHARTMUSEUM_URL"

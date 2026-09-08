@@ -1,0 +1,41 @@
+{{- if .Values.tests.enabled -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "savvy.fullname" . }}-test
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "savvy.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: probe
+      image: {{ .Values.tests.image.repository }}:{{ .Values.tests.image.tag }}
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          base="http://{{ include "savvy.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}"
+          echo "probing $base/livez"
+          curl -fsS --max-time 10 "$base/livez" >/dev/null
+          echo "probing $base/readyz"
+          curl -fsS --max-time 10 "$base/readyz" >/dev/null
+          echo "probing $base/"
+          curl -fsS --max-time 10 "$base/" >/dev/null
+          echo "all probes passed"
+{{- end }}

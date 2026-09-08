@@ -22,17 +22,17 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { recurringSchema, RecurringFormData } from '@/schemas'
+import { recurringSchema, RecurringFormData, RecurringFormInput } from '@/schemas'
 import { useAccounts, useCategories, useTags } from '@/hooks'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn, toId } from '@/lib/utils'
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react'
 import { AccountSelect } from '@/components/shared/AccountSelect'
 import { CategorySelect } from '@/components/shared/CategorySelect'
 import { FormWrapper } from '@/components/shared/FormWrapper'
 
 interface RecurringFormProps {
-    defaultValues?: Partial<RecurringFormData>
+    defaultValues?: Partial<RecurringFormInput>
     onSubmit: (data: RecurringFormData) => void
     isSubmitting?: boolean
     submitLabel?: string
@@ -71,7 +71,7 @@ export function RecurringForm({
     const { data: categories } = useCategories()
     const { data: tags } = useTags()
 
-    const form = useForm<RecurringFormData>({
+    const form = useForm<RecurringFormInput, unknown, RecurringFormData>({
         resolver: zodResolver(recurringSchema),
         defaultValues: {
             type: 'expense',
@@ -166,7 +166,7 @@ export function RecurringForm({
                             <FormItem>
                                 <FormLabel>{isTransfer ? 'From Account' : 'Account'}</FormLabel>
                                 <AccountSelect
-                                    value={field.value}
+                                    value={toId(field.value)}
                                     onChange={field.onChange}
                                 />
                                 <FormMessage />
@@ -182,9 +182,9 @@ export function RecurringForm({
                                 <FormItem>
                                     <FormLabel>To Account</FormLabel>
                                     <AccountSelect
-                                        value={field.value}
+                                        value={toId(field.value)}
                                         onChange={field.onChange}
-                                        excludeId={accountId}
+                                        excludeId={toId(accountId)}
                                     />
                                     <FormMessage />
                                 </FormItem>
@@ -202,7 +202,7 @@ export function RecurringForm({
                             <FormItem>
                                 <FormLabel>Category</FormLabel>
                                 <CategorySelect
-                                    value={field.value}
+                                    value={toId(field.value)}
                                     onChange={field.onChange}
                                     type={type as 'income' | 'expense'}
                                 />

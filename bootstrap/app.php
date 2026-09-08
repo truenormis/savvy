@@ -11,6 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
     )
+    ->withEvents()
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(
             at: '*',
@@ -21,12 +22,23 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->preventRequestsDuringMaintenance(except: [
             'livez',
         ]);
+        $middleware->encryptCookies(except: [
+            'svy_session',
+            '__Host-svy_session',
+            'svy_csrf',
+        ]);
         $middleware->alias([
-            'jwt' => \App\Http\Middleware\JwtMiddleware::class,
+            'session' => \App\Http\Middleware\AuthenticateSession::class,
+            'csrf' => \App\Http\Middleware\VerifyCsrfToken::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'write' => \App\Http\Middleware\WriteAccessMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\App\Services\Upload\UploadException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->status());
+        });
+        $exceptions->render(function (\App\Services\Auth\Webauthn\WebauthnException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        });
     })->create();

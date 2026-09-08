@@ -57,7 +57,7 @@ class DebtController extends Controller
      */
     public function show(Account $debt): DebtResource|JsonResponse
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             return response()->json(['message' => 'Account is not a debt.'], 404);
         }
 
@@ -74,7 +74,7 @@ class DebtController extends Controller
      */
     public function update(UpdateDebtRequest $request, Account $debt): DebtResource|JsonResponse
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             return response()->json(['message' => 'Account is not a debt.'], 404);
         }
 
@@ -99,7 +99,7 @@ class DebtController extends Controller
      */
     public function destroy(Account $debt): JsonResponse
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             return response()->json(['message' => 'Account is not a debt.'], 404);
         }
 
@@ -117,7 +117,7 @@ class DebtController extends Controller
      */
     public function payment(DebtPaymentRequest $request, Account $debt): TransactionResource|JsonResponse
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             return response()->json(['message' => 'Account is not a debt.'], 404);
         }
 
@@ -141,7 +141,7 @@ class DebtController extends Controller
      */
     public function collect(DebtPaymentRequest $request, Account $debt): TransactionResource|JsonResponse
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             return response()->json(['message' => 'Account is not a debt.'], 404);
         }
 
@@ -173,7 +173,7 @@ class DebtController extends Controller
      */
     public function reopen(Account $debt): DebtResource|JsonResponse
     {
-        if (!$debt->isDebt()) {
+        if (! $debt->isDebt()) {
             return response()->json(['message' => 'Account is not a debt.'], 404);
         }
 

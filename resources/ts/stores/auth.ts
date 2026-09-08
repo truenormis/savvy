@@ -1,8 +1,8 @@
 import { create } from 'zustand'
-import { authApi } from '@/api'
+import { startAuthentication } from '@simplewebauthn/browser'
+import { authApi, webauthnApi } from '@/api'
+import { setOnUnauthorized } from '@/api/client'
 import { User, LoginCredentials, RegisterData, AuthResponse, TwoFactorAuthResponse } from '@/types'
-
-const TOKEN_KEY = 'auth_token'
 
 export type LoginResult =
     | { success: true }
@@ -10,17 +10,17 @@ export type LoginResult =
 
 interface AuthState {
     user: User | null
-    token: string | null
     isLoading: boolean
     isAuthenticated: boolean
 
-    // Actions
     login: (credentials: LoginCredentials) => Promise<LoginResult>
     loginWith2FA: (twoFactorToken: string, code: string) => Promise<void>
+    loginWithPasskey: (options?: { twoFactorToken?: string; useAutofill?: boolean }) => Promise<void>
     register: (data: RegisterData) => Promise<void>
-    logout: () => void
+    logout: () => Promise<void>
     checkAuth: () => Promise<void>
-    setToken: (token: string) => void
+    setUser: (user: User) => void
+    clear: () => void
 }
 
 function isTwoFactorResponse(response: AuthResponse | TwoFactorAuthResponse): response is TwoFactorAuthResponse {
@@ -29,7 +29,6 @@ function isTwoFactorResponse(response: AuthResponse | TwoFactorAuthResponse): re
 
 export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
-    token: localStorage.getItem(TOKEN_KEY),
     isLoading: true,
     isAuthenticated: false,
 
@@ -37,59 +36,60 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const response = await authApi.login(credentials)
 
         if (isTwoFactorResponse(response)) {
-            return {
-                success: false,
-                requires_2fa: true,
-                two_factor_token: response.two_factor_token,
-            }
+            return { success: false, requires_2fa: true, two_factor_token: response.two_factor_token }
         }
 
-        localStorage.setItem(TOKEN_KEY, response.token)
-        set({ user: response.user, token: response.token, isAuthenticated: true })
+        set({ user: response.user, isAuthenticated: true })
         return { success: true }
     },
 
     loginWith2FA: async (twoFactorToken, code) => {
-        const { user, token } = await authApi.twoFactorVerify(twoFactorToken, code)
-        localStorage.setItem(TOKEN_KEY, token)
-        set({ user, token, isAuthenticated: true })
+        const { user } = await authApi.twoFactorVerify(twoFactorToken, code)
+        set({ user, isAuthenticated: true })
+    },
+
+    loginWithPasskey: async ({ twoFactorToken, useAutofill } = {}) => {
+        const { token, options } = await webauthnApi.loginOptions(twoFactorToken)
+        const assertion = await startAuthentication({
+            optionsJSON: options,
+            useBrowserAutofill: useAutofill ?? false,
+        })
+        const { user } = await webauthnApi.loginVerify(token, assertion, twoFactorToken)
+        set({ user, isAuthenticated: true })
     },
 
     register: async (data) => {
-        const { user, token } = await authApi.register(data)
-        localStorage.setItem(TOKEN_KEY, token)
+        const { user } = await authApi.register(data)
         sessionStorage.setItem('just_registered', 'true')
-        set({ user, token, isAuthenticated: true })
+        set({ user, isAuthenticated: true })
     },
 
-    logout: () => {
-        localStorage.removeItem(TOKEN_KEY)
-        set({ user: null, token: null, isAuthenticated: false })
+    logout: async () => {
+        try {
+            await authApi.logout()
+        } catch {
+            // session may already be gone; clear locally regardless
+        }
+        get().clear()
     },
 
     checkAuth: async () => {
-        const token = get().token
-        if (!token) {
-            set({ isLoading: false, isAuthenticated: false })
-            return
-        }
-
         try {
             const { user } = await authApi.me()
-            set({ user, isAuthenticated: true, isLoading: false })
+            set({ user, isAuthenticated: user !== null, isLoading: false })
         } catch {
-            localStorage.removeItem(TOKEN_KEY)
-            set({ user: null, token: null, isAuthenticated: false, isLoading: false })
+            set({ user: null, isAuthenticated: false, isLoading: false })
         }
     },
 
-    setToken: (token) => {
-        localStorage.setItem(TOKEN_KEY, token)
-        set({ token })
-    },
+    setUser: (user) => set({ user, isAuthenticated: true, isLoading: false }),
+
+    clear: () => set({ user: null, isAuthenticated: false, isLoading: false }),
 }))
 
-// Selector hooks
+// A 401 anywhere drops auth state; AuthProvider then soft-redirects to /login.
+setOnUnauthorized(() => useAuthStore.getState().clear())
+
 export const useUser = () => useAuthStore((state) => state.user)
 export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenticated)
 export const useAuthLoading = () => useAuthStore((state) => state.isLoading)

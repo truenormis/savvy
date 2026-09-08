@@ -20,11 +20,13 @@ class CashFlowReportService
         $incomeByCategory = $this->transactionRepository->sumGroupedByCategory('income', $dateRange, $filters);
         $expensesByCategory = $this->transactionRepository->sumGroupedByCategory('expense', $dateRange, $filters);
 
+        [$incomeByCategory, $expensesByCategory, $savingsNode] = $this->resolveNodeNames($incomeByCategory, $expensesByCategory);
+
         $totalIncome = array_sum(array_column($incomeByCategory, 'total'));
         $totalExpenses = array_sum(array_column($expensesByCategory, 'total'));
 
-        $nodes = $this->buildNodes($incomeByCategory, $expensesByCategory, $totalIncome - $totalExpenses);
-        $links = $this->buildLinks($incomeByCategory, $expensesByCategory, $totalIncome, $totalExpenses);
+        $nodes = $this->buildNodes($incomeByCategory, $expensesByCategory, $totalIncome - $totalExpenses, $savingsNode);
+        $links = $this->buildLinks($incomeByCategory, $expensesByCategory, $totalIncome, $totalExpenses, $savingsNode);
 
         return [
             'nodes' => $nodes,
@@ -101,7 +103,33 @@ class CashFlowReportService
         return $result;
     }
 
-    private function buildNodes(array $incomeByCategory, array $expensesByCategory, float $savings): array
+    private function resolveNodeNames(array $incomeByCategory, array $expensesByCategory): array
+    {
+        $used = [];
+        $resolve = function (string $name) use (&$used): string {
+            $candidate = $name;
+            while (isset($used[$candidate])) {
+                $candidate .= "\u{200B}";
+            }
+            $used[$candidate] = true;
+
+            return $candidate;
+        };
+
+        foreach ($expensesByCategory as &$expense) {
+            $expense['node'] = $resolve($expense['name']);
+        }
+        unset($expense);
+
+        foreach ($incomeByCategory as &$income) {
+            $income['node'] = $resolve($income['name']);
+        }
+        unset($income);
+
+        return [$incomeByCategory, $expensesByCategory, $resolve('Savings')];
+    }
+
+    private function buildNodes(array $incomeByCategory, array $expensesByCategory, float $savings, string $savingsNode): array
     {
         $incomeColors = ['#22c55e', '#16a34a', '#15803d', '#14532d', '#166534', '#4ade80'];
         $expenseColors = ['#ef4444', '#f97316', '#eab308', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e', '#a855f7'];
@@ -110,21 +138,21 @@ class CashFlowReportService
 
         foreach ($incomeByCategory as $index => $item) {
             $nodes[] = [
-                'name' => $item['name'],
+                'name' => $item['node'],
                 'itemStyle' => ['color' => $incomeColors[$index % count($incomeColors)]],
             ];
         }
 
         foreach ($expensesByCategory as $index => $item) {
             $nodes[] = [
-                'name' => $item['name'],
+                'name' => $item['node'],
                 'itemStyle' => ['color' => $expenseColors[$index % count($expenseColors)]],
             ];
         }
 
         if ($savings > 0) {
             $nodes[] = [
-                'name' => 'Savings',
+                'name' => $savingsNode,
                 'itemStyle' => ['color' => '#3b82f6'],
             ];
         }
@@ -132,7 +160,7 @@ class CashFlowReportService
         return $nodes;
     }
 
-    private function buildLinks(array $incomeByCategory, array $expensesByCategory, float $totalIncome, float $totalExpenses): array
+    private function buildLinks(array $incomeByCategory, array $expensesByCategory, float $totalIncome, float $totalExpenses, string $savingsNode): array
     {
         $links = [];
         $savings = $totalIncome - $totalExpenses;
@@ -148,8 +176,8 @@ class CashFlowReportService
                 $linkValue = round($incomeShare * $expense['total'], 2);
                 if ($linkValue > 0) {
                     $links[] = [
-                        'source' => $income['name'],
-                        'target' => $expense['name'],
+                        'source' => $income['node'],
+                        'target' => $expense['node'],
                         'value' => $linkValue,
                     ];
                 }
@@ -159,8 +187,8 @@ class CashFlowReportService
                 $savingsFromSource = round($incomeShare * $savings, 2);
                 if ($savingsFromSource > 0) {
                     $links[] = [
-                        'source' => $income['name'],
-                        'target' => 'Savings',
+                        'source' => $income['node'],
+                        'target' => $savingsNode,
                         'value' => $savingsFromSource,
                     ];
                 }

@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Progress } from '@/components/ui/progress'
 import { Stepper, Step } from '@/components/ui/stepper'
 import { ArrowLeft, ArrowRight, Upload, Loader2, AlertCircle } from 'lucide-react'
-import { useParseCSV, usePreviewImport, useExecuteImport } from '@/hooks/use-csv-import'
+import { useMultipartUpload } from '@/hooks/use-upload'
+import { useParseImport, usePreviewImport, useExecuteImport } from '@/hooks/use-csv-import'
 import { UploadStep } from './steps/UploadStep'
 import { MappingStep } from './steps/MappingStep'
 import { PreviewStep } from './steps/PreviewStep'
@@ -24,6 +26,8 @@ const STEPS: { id: ImportStep; label: string }[] = [
     { id: 'result', label: 'Result' },
 ]
 
+const UPLOAD_BUCKET = 'transaction-imports'
+
 export function CsvImportWizard() {
     const [step, setStep] = useState<ImportStep>('upload')
     const [parseResult, setParseResult] = useState<CsvParseResult | null>(null)
@@ -33,7 +37,8 @@ export function CsvImportWizard() {
     const [options, setOptions] = useState<ImportOptions | null>(null)
     const [error, setError] = useState<string | null>(null)
 
-    const parseMutation = useParseCSV()
+    const upload = useMultipartUpload()
+    const parseMutation = useParseImport()
     const previewMutation = usePreviewImport()
     const importMutation = useExecuteImport()
 
@@ -42,12 +47,16 @@ export function CsvImportWizard() {
     const handleFileSelect = useCallback(async (file: File) => {
         setError(null)
         try {
-            const result = await parseMutation.mutateAsync(file)
+            const { uploadId } = await upload.upload({ bucket: UPLOAD_BUCKET, file })
+            const result = await parseMutation.mutateAsync(uploadId)
             setParseResult(result)
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to parse file')
+            if (e instanceof DOMException && e.name === 'AbortError') {
+                return
+            }
+            setError(e instanceof Error ? e.message : 'Failed to process file')
         }
-    }, [parseMutation])
+    }, [upload, parseMutation])
 
     const handleMappingSubmit = useCallback(async (newMapping: ColumnMapping, newOptions: ImportOptions) => {
         if (!parseResult) return
@@ -109,9 +118,12 @@ export function CsvImportWizard() {
         setMapping(null)
         setOptions(null)
         setError(null)
-    }, [])
+        upload.reset()
+    }, [upload])
 
-    const isLoading = parseMutation.isPending || previewMutation.isPending || importMutation.isPending
+    const isUploading = upload.isUploading
+    const isParsing = parseMutation.isPending
+    const isLoading = isUploading || isParsing || previewMutation.isPending || importMutation.isPending
 
     const canGoToStep = (targetIndex: number): boolean => {
         if (targetIndex === 0) return true
@@ -145,8 +157,11 @@ export function CsvImportWizard() {
                 {step === 'upload' && (
                     <UploadStep
                         onFileSelect={handleFileSelect}
+                        onCancelUpload={upload.cancel}
                         parseResult={parseResult}
-                        isLoading={parseMutation.isPending}
+                        isUploading={isUploading}
+                        isParsing={isParsing}
+                        uploadPercentage={upload.progress?.percentage ?? 0}
                         error={error}
                     />
                 )}
@@ -171,7 +186,6 @@ export function CsvImportWizard() {
                 )}
             </div>
 
-            {/* Error Display */}
             {error && step !== 'upload' && (
                 <Alert variant="destructive">
                     <AlertCircle className="size-4" />
@@ -179,7 +193,25 @@ export function CsvImportWizard() {
                 </Alert>
             )}
 
-            {/* Navigation Buttons */}
+            {step === 'preview' && importMutation.isPending && importMutation.progress && (
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Importing transactions…</span>
+                        <span>
+                            {importMutation.progress.processed}
+                            {importMutation.progress.total ? ` / ${importMutation.progress.total}` : ''}
+                        </span>
+                    </div>
+                    <Progress
+                        value={
+                            importMutation.progress.total
+                                ? Math.round((importMutation.progress.processed / importMutation.progress.total) * 100)
+                                : 0
+                        }
+                    />
+                </div>
+            )}
+
             {step !== 'result' && (
                 <div className="flex justify-between pt-6 border-t">
                     <div>
@@ -236,7 +268,12 @@ export function CsvImportWizard() {
                                 ) : (
                                     <>
                                         <Upload className="size-4 mr-2" />
-                                        Import {previewResult?.summary.willCreate ?? 0} Transactions
+                                        Import {(() => {
+                                            const s = previewResult?.summary
+                                            if (!s) return 0
+                                            const sampled = s.totalRows !== null && s.sampled < s.totalRows
+                                            return `${sampled ? '~' : ''}${(sampled ? (s.totalRows as number) : s.willCreate).toLocaleString()}`
+                                        })()} Transactions
                                     </>
                                 )}
                             </Button>
@@ -245,7 +282,6 @@ export function CsvImportWizard() {
                 </div>
             )}
 
-            {/* Reset Button for Result Step */}
             {step === 'result' && (
                 <div className="flex justify-center pt-6 border-t">
                     <Button variant="outline" onClick={reset}>

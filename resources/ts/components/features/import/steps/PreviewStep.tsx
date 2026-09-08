@@ -12,6 +12,10 @@ interface PreviewStepProps {
 export function PreviewStep({ previewResult, isLoading }: PreviewStepProps) {
     const { previewTransactions, summary } = previewResult
 
+    const isSampled = summary.totalRows !== null && summary.sampled < summary.totalRows
+    const createEstimate = isSampled ? (summary.totalRows as number) : summary.willCreate
+    const nf = (n: number) => n.toLocaleString()
+
     const statusConfig = {
         new: {
             icon: CheckCircle2,
@@ -38,18 +42,31 @@ export function PreviewStep({ previewResult, isLoading }: PreviewStepProps) {
             {/* Summary Cards */}
             <div className="grid gap-4 sm:grid-cols-3">
                 <div className="p-4 border rounded-lg bg-green-500/10">
-                    <div className="text-3xl font-bold text-green-600">{summary.willCreate}</div>
+                    <div className="text-3xl font-bold text-green-600">
+                        {isSampled && '~'}{nf(createEstimate)}
+                    </div>
                     <div className="text-sm text-muted-foreground">Will be created</div>
                 </div>
                 <div className="p-4 border rounded-lg bg-yellow-500/10">
-                    <div className="text-3xl font-bold text-yellow-600">{summary.willSkip}</div>
-                    <div className="text-sm text-muted-foreground">Duplicates (skipped)</div>
+                    <div className="text-3xl font-bold text-yellow-600">{nf(summary.willSkip)}</div>
+                    <div className="text-sm text-muted-foreground">
+                        Duplicates (skipped){isSampled && ' in sample'}
+                    </div>
                 </div>
                 <div className="p-4 border rounded-lg bg-red-500/10">
-                    <div className="text-3xl font-bold text-red-600">{summary.hasErrors}</div>
-                    <div className="text-sm text-muted-foreground">Errors</div>
+                    <div className="text-3xl font-bold text-red-600">{nf(summary.hasErrors)}</div>
+                    <div className="text-sm text-muted-foreground">
+                        Errors{isSampled && ' in sample'}
+                    </div>
                 </div>
             </div>
+
+            {isSampled && (
+                <p className="text-sm text-muted-foreground">
+                    Large file: validated a sample of {nf(summary.sampled)} of {nf(summary.totalRows as number)} rows.
+                    Exact created/skipped counts are reported after the import runs.
+                </p>
+            )}
 
             {/* Auto-create info */}
             {(summary.categoriesToCreate.length > 0 ||

@@ -6,12 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private function connection(): ?string
+    {
+        return config('queue.connections.database.connection') ?: config('database.default');
+    }
+
     /**
-     * Run the migrations.
+     * Create the table only when it is missing. See the note in the sessions
+     * migration: the shard keeps its tables when a restored main database
+     * rewinds the migration ledger.
      */
+    private function ensure(string $table, callable $definition): void
+    {
+        if (Schema::connection($this->connection())->hasTable($table)) {
+            return;
+        }
+
+        Schema::connection($this->connection())->create($table, $definition);
+    }
+
     public function up(): void
     {
-        Schema::create('jobs', function (Blueprint $table) {
+        $this->ensure('jobs', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('queue')->index();
             $table->longText('payload');
@@ -22,11 +38,8 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('jobs');
+        Schema::connection($this->connection())->dropIfExists('jobs');
     }
 };

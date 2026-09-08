@@ -2,7 +2,7 @@ import { useQueryState, parseAsStringLiteral, parseAsFloat, parseAsString } from
 import { FormPage } from '@/components/shared'
 import { TransactionForm } from '@/components/features/transactions'
 import { useCreateTransaction } from '@/hooks'
-import { TransactionType } from '@/types'
+import { TransactionFormType } from '@/types'
 
 export default function TransactionCreatePage() {
     const [type, setType] = useQueryState(
@@ -18,7 +18,7 @@ export default function TransactionCreatePage() {
         <FormPage title="New Transaction" backLink="/transactions">
             <TransactionForm
                 defaultValues={{
-                    type: type as TransactionType,
+                    type: type as TransactionFormType,
                     amount: amount ?? undefined,
                     description: description ?? undefined,
                 }}

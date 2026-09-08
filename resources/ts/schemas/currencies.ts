@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { numeric } from './numeric'
 
 export const currencySchema = z.object({
     code: z.string()
@@ -14,14 +15,10 @@ export const currencySchema = z.object({
         .min(1, 'Symbol is required')
         .max(5, 'Maximum 5 characters'),
 
-    decimals: z.coerce.number()
-        .int()
-        .min(0, 'Minimum 0')
-        .max(8, 'Maximum 8'),
+    decimals: numeric(z.number().int().min(0, 'Minimum 0').max(8, 'Maximum 8')),
 
-    rate: z.coerce.number()
-        .positive('Rate must be positive')
-        .optional(),
+    rate: numeric(z.number().positive('Rate must be positive')).optional(),
 })
 
-export type CurrencyFormData = z.infer<typeof currencySchema>
+export type CurrencyFormData = z.output<typeof currencySchema>
+export type CurrencyFormInput = z.input<typeof currencySchema>

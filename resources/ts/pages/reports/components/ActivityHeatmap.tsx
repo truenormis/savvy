@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -10,101 +10,93 @@ interface ActivityHeatmapProps {
     filters: ReportFilters
 }
 
+const MIN_GAP = 1
+
+const COLOR_RAMP: Array<{ t: number; c: [number, number, number] }> = [
+    { t: 0, c: [254, 243, 199] }, // amber-100
+    { t: 0.35, c: [253, 224, 71] }, // amber-300
+    { t: 0.65, c: [249, 115, 22] }, // orange-500
+    { t: 1, c: [239, 68, 68] }, // red-500
+]
+
+const GRADIENT_CSS = 'linear-gradient(to right, rgb(254,243,199), rgb(253,224,71), rgb(249,115,22), rgb(239,68,68))'
+
+function colorForValue(value: number, max: number): string | null {
+    if (value <= 0 || max <= 0) return null
+
+    const t = Math.min(1, Math.max(0, Math.pow(value / max, 0.6)))
+    const lerp = (a: number, b: number, f: number) => Math.round(a + (b - a) * f)
+
+    for (let i = 1; i < COLOR_RAMP.length; i++) {
+        if (t <= COLOR_RAMP[i].t) {
+            const a = COLOR_RAMP[i - 1]
+            const b = COLOR_RAMP[i]
+            const f = (t - a.t) / (b.t - a.t)
+            return `rgb(${lerp(a.c[0], b.c[0], f)}, ${lerp(a.c[1], b.c[1], f)}, ${lerp(a.c[2], b.c[2], f)})`
+        }
+    }
+
+    const last = COLOR_RAMP[COLOR_RAMP.length - 1].c
+    return `rgb(${last[0]}, ${last[1]}, ${last[2]})`
+}
+
 export function ActivityHeatmap({ filters }: ActivityHeatmapProps) {
     const { data, isLoading, error } = useActivityHeatmap(filters)
+    const areaRef = useRef<HTMLDivElement>(null)
+    const [cols, setCols] = useState(7)
 
-    // Parse date string without timezone issues
     const parseLocalDate = (dateStr: string) => {
         const [year, month, day] = dateStr.split('-').map(Number)
         return new Date(year, month - 1, day)
     }
 
-    // Format date as YYYY-MM-DD without timezone conversion
-    const formatDateKey = (year: number, month: number, day: number) => {
-        return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    }
-
     const heatmapData = useMemo(() => {
         if (!data?.items?.length) return null
 
-        const { items, max, currency } = data
-
-        // Get the year and month from the first item (parse without timezone)
-        const firstDate = parseLocalDate(items[0].date)
-        const year = firstDate.getFullYear()
-        const month = firstDate.getMonth()
-
-        // Calculate the range for this month
-        const startOfMonth = new Date(year, month, 1)
-        const endOfMonth = new Date(year, month + 1, 0)
-
-        // Get day of week for the first day (0 = Sunday)
-        const startDayOfWeek = startOfMonth.getDay()
-        const daysInMonth = endOfMonth.getDate()
-
-        // Build lookup from API data
-        const dataByDate: Record<string, { value: number; count: number }> = {}
-        items.forEach(item => {
-            dataByDate[item.date] = { value: item.value, count: item.count }
-        })
-
-        // Build weeks array
-        const weeks: Array<Array<{ day: number; value: number; count: number; date: string } | null>> = []
-        let currentWeek: Array<{ day: number; value: number; count: number; date: string } | null> = []
-
-        // Add empty cells for days before the first day of month
-        for (let i = 0; i < startDayOfWeek; i++) {
-            currentWeek.push(null)
-        }
-
-        // Fill in all days of the month
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateStr = formatDateKey(year, month, day)
-            const dayData = dataByDate[dateStr] || { value: 0, count: 0 }
-
-            currentWeek.push({
-                day,
-                value: dayData.value,
-                count: dayData.count,
-                date: dateStr,
-            })
-
-            if (currentWeek.length === 7) {
-                weeks.push(currentWeek)
-                currentWeek = []
-            }
-        }
-
-        // Add remaining days to last week
-        if (currentWeek.length > 0) {
-            while (currentWeek.length < 7) {
-                currentWeek.push(null)
-            }
-            weeks.push(currentWeek)
-        }
-
         return {
-            weeks,
-            max,
-            currency,
-            monthName: firstDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            cells: data.items.map(item => ({ value: item.value, count: item.count, date: item.date })),
+            max: data.max,
+            currency: data.currency,
         }
     }, [data])
 
-    const getIntensityClass = (value: number, max: number) => {
-        if (value === 0) return 'bg-muted'
-        const intensity = value / max
-        if (intensity <= 0.25) return 'bg-amber-100 dark:bg-amber-900/30'
-        if (intensity <= 0.5) return 'bg-amber-300 dark:bg-amber-700/50'
-        if (intensity <= 0.75) return 'bg-orange-400 dark:bg-orange-600/60'
-        return 'bg-red-500 dark:bg-red-500/70'
-    }
+    const count = heatmapData?.cells.length ?? 0
+
+    useLayoutEffect(() => {
+        const el = areaRef.current
+        if (!el || count === 0) return
+
+        const compute = () => {
+            const w = el.clientWidth
+            const h = el.clientHeight
+            if (!w || !h) return
+
+            // Pick the column count that makes each filled cell closest to square
+            let bestRatio = Infinity
+            let bestCols = 1
+            for (let c = 1; c <= count; c++) {
+                const rows = Math.ceil(count / c)
+                const cellW = w / c
+                const cellH = h / rows
+                const ratio = Math.max(cellW, cellH) / Math.min(cellW, cellH)
+                if (ratio < bestRatio) {
+                    bestRatio = ratio
+                    bestCols = c
+                }
+            }
+
+            setCols(bestCols)
+        }
+
+        compute()
+        const ro = new ResizeObserver(compute)
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, [count])
 
     const formatCurrency = (val: number, currency: string) => {
         return `${currency}${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
     }
-
-    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
     if (error) {
         return (
@@ -117,7 +109,7 @@ export function ActivityHeatmap({ filters }: ActivityHeatmapProps) {
     }
 
     return (
-        <Card>
+        <Card className="flex flex-col">
             <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                     <div>
@@ -129,101 +121,65 @@ export function ActivityHeatmap({ filters }: ActivityHeatmapProps) {
                     {heatmapData && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <span>Less</span>
-                            <div className="flex gap-0.5">
-                                <div className="size-3 rounded-sm bg-muted" />
-                                <div className="size-3 rounded-sm bg-amber-100 dark:bg-amber-900/30" />
-                                <div className="size-3 rounded-sm bg-amber-300 dark:bg-amber-700/50" />
-                                <div className="size-3 rounded-sm bg-orange-400 dark:bg-orange-600/60" />
-                                <div className="size-3 rounded-sm bg-red-500 dark:bg-red-500/70" />
-                            </div>
+                            <div className="h-2.5 w-20 rounded-sm" style={{ background: GRADIENT_CSS }} />
                             <span>More</span>
                         </div>
                     )}
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col min-h-0">
                 {isLoading ? (
-                    <Skeleton className="h-[220px]" />
+                    <Skeleton className="flex-1 min-h-[220px]" />
                 ) : !heatmapData ? (
-                    <div className="h-[220px] flex items-center justify-center text-muted-foreground">
+                    <div className="flex-1 min-h-[220px] flex items-center justify-center text-muted-foreground">
                         No data for selected period
                     </div>
                 ) : (
-                    <div className="space-y-2">
-                        {/* Day labels row */}
-                        <div className="flex gap-1">
-                            <div className="w-8" /> {/* Spacer for week labels */}
-                            {dayLabels.map(day => (
-                                <div
-                                    key={day}
-                                    className="flex-1 text-center text-xs text-muted-foreground"
-                                >
-                                    {day}
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Weeks */}
-                        <div className="space-y-1">
-                            {heatmapData.weeks.map((week, weekIndex) => (
-                                <div key={weekIndex} className="flex gap-1">
-                                    <div className="w-8 text-xs text-muted-foreground flex items-center">
-                                        W{weekIndex + 1}
-                                    </div>
-                                    {week.map((day, dayIndex) => (
+                    <div ref={areaRef} className="flex-1 min-h-[220px] overflow-hidden">
+                        <div
+                            className="grid size-full"
+                            style={{
+                                gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                                gridAutoRows: 'minmax(0, 1fr)',
+                                gap: MIN_GAP,
+                            }}
+                        >
+                            {heatmapData.cells.map((cell, i) => {
+                                const color = colorForValue(cell.value, heatmapData.max)
+                                return (
+                                <Tooltip key={i}>
+                                    <TooltipTrigger asChild>
                                         <div
-                                            key={dayIndex}
-                                            className="flex-1 aspect-square"
-                                        >
-                                            {day ? (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <div
-                                                            className={cn(
-                                                                'size-full rounded-md flex items-center justify-center text-xs font-medium cursor-default transition-colors',
-                                                                'hover:ring-2 hover:ring-ring hover:ring-offset-1',
-                                                                getIntensityClass(day.value, heatmapData.max),
-                                                                day.value > 0 && day.value / heatmapData.max > 0.5
-                                                                    ? 'text-white'
-                                                                    : 'text-foreground'
-                                                            )}
-                                                        >
-                                                            {day.day}
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" className="text-center">
-                                                        <p className="font-medium">
-                                                            {parseLocalDate(day.date).toLocaleDateString('en-US', {
-                                                                weekday: 'short',
-                                                                month: 'short',
-                                                                day: 'numeric'
-                                                            })}
-                                                        </p>
-                                                        {day.value > 0 ? (
-                                                            <>
-                                                                <p className="text-amber-300">{formatCurrency(day.value, heatmapData.currency)}</p>
-                                                                <p className="opacity-70">{day.count} transaction{day.count !== 1 ? 's' : ''}</p>
-                                                            </>
-                                                        ) : (
-                                                            <p className="opacity-70">No expenses</p>
-                                                        )}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            ) : (
-                                                <div className="size-full" />
+                                            style={{ backgroundColor: color ?? undefined }}
+                                            className={cn(
+                                                'size-full rounded-[2px] cursor-default transition-colors',
+                                                'hover:ring-2 hover:ring-ring hover:ring-offset-1 hover:z-10',
+                                                color ? '' : 'bg-muted',
                                             )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ))}
+                                        />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="text-center">
+                                        <p className="font-medium">
+                                            {parseLocalDate(cell.date).toLocaleDateString('en-US', {
+                                                weekday: 'short',
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                            })}
+                                        </p>
+                                        {cell.value > 0 ? (
+                                            <>
+                                                <p className="text-amber-300">{formatCurrency(cell.value, heatmapData.currency)}</p>
+                                                <p className="opacity-70">{cell.count} transaction{cell.count !== 1 ? 's' : ''}</p>
+                                            </>
+                                        ) : (
+                                            <p className="opacity-70">No expenses</p>
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
+                                )
+                            })}
                         </div>
-
-                        {/* Summary */}
-                        {heatmapData.max > 0 && (
-                            <div className="pt-2 text-xs text-muted-foreground text-center">
-                                Peak day: {formatCurrency(heatmapData.max, heatmapData.currency)}
-                            </div>
-                        )}
                     </div>
                 )}
             </CardContent>

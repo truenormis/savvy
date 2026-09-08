@@ -4,12 +4,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 interface FormPageProps {
     title: string
+    description?: string
     backLink?: string
     isLoading?: boolean
     children: React.ReactNode
 }
 
-export function FormPage({ title, backLink, isLoading, children }: FormPageProps) {
+export function FormPage({ title, description, backLink, isLoading, children }: FormPageProps) {
     if (isLoading) {
         return (
             <Page title={title}>
@@ -27,7 +28,7 @@ export function FormPage({ title, backLink, isLoading, children }: FormPageProps
 
     return (
         <Page title={title}>
-            <PageHeader title={title} backLink={backLink} />
+            <PageHeader title={title} description={description} backLink={backLink} />
             {children}
         </Page>
     )

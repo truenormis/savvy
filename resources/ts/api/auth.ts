@@ -29,14 +29,13 @@ export const authApi = {
         return response.data
     },
 
-    me: async (): Promise<{ user: User }> => {
+    me: async (): Promise<{ user: User | null }> => {
         const response = await apiClient.get('/auth/me')
         return response.data
     },
 
-    refresh: async (): Promise<{ token: string }> => {
-        const response = await apiClient.post('/auth/refresh')
-        return response.data
+    logout: async (): Promise<void> => {
+        await apiClient.post('/auth/logout')
     },
 
     // 2FA Methods

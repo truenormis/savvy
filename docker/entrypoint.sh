@@ -20,35 +20,85 @@ APP_URL=http://localhost
 
 APP_KEY=$APP_KEY
 
+LOG_CHANNEL=stderr
+
 DB_CONNECTION=sqlite
 DB_DATABASE=$DATA_DIR/database.sqlite
 
-SESSION_DRIVER=file
-CACHE_STORE=file
+SESSION_DRIVER=database
+CACHE_STORE=database
 QUEUE_CONNECTION=database
 
+DB_QUEUE_CONNECTION=sqlite_queue
+DB_QUEUE_DATABASE=$DATA_DIR/queue.sqlite
+DB_CACHE_CONNECTION=sqlite_cache
+DB_CACHE_LOCK_CONNECTION=sqlite_cache
+DB_CACHE_DATABASE=$DATA_DIR/cache.sqlite
+SESSION_CONNECTION=sqlite_sessions
+DB_SESSIONS_DATABASE=$DATA_DIR/sessions.sqlite
+
 BACKUP_PATH=$DATA_DIR/backups
+UPLOAD_ROOT=$DATA_DIR/uploads
 EOF
 
-    touch "$DATA_DIR/database.sqlite"
-    chmod 664 "$DATA_DIR/database.sqlite"
+    for f in database queue cache sessions; do
+        touch "$DATA_DIR/$f.sqlite"
+        chmod 664 "$DATA_DIR/$f.sqlite" 2>/dev/null || true
+    done
 
     mkdir -p "$DATA_DIR/backups"
-    chmod 775 "$DATA_DIR/backups"
+    chmod 775 "$DATA_DIR/backups" 2>/dev/null || true
+
+    mkdir -p "$DATA_DIR/uploads"
+    chmod 775 "$DATA_DIR/uploads" 2>/dev/null || true
 
     php artisan migrate --force --seed
 
     cp "$ENV_FILE" "$DATA_DIR/.env_config"
 fi
 
-[ -f "$DATA_DIR/database.sqlite" ] && chmod 664 "$DATA_DIR/database.sqlite"
-[ ! -d "$DATA_DIR/backups" ] && mkdir -p "$DATA_DIR/backups" && chmod 775 "$DATA_DIR/backups"
+[ -f "$DATA_DIR/database.sqlite" ] && chmod 664 "$DATA_DIR/database.sqlite" 2>/dev/null || true
+[ ! -d "$DATA_DIR/backups" ] && mkdir -p "$DATA_DIR/backups" && chmod 775 "$DATA_DIR/backups" 2>/dev/null || true
+[ ! -d "$DATA_DIR/uploads" ] && mkdir -p "$DATA_DIR/uploads" && chmod 775 "$DATA_DIR/uploads" 2>/dev/null || true
+
+if ! grep -q '^UPLOAD_ROOT=' "$ENV_FILE"; then
+    echo "UPLOAD_ROOT=$DATA_DIR/uploads" >> "$ENV_FILE"
+    grep -q '^UPLOAD_ROOT=' "$DATA_DIR/.env_config" 2>/dev/null || echo "UPLOAD_ROOT=$DATA_DIR/uploads" >> "$DATA_DIR/.env_config"
+fi
+
+for f in queue cache sessions; do
+    [ -f "$DATA_DIR/$f.sqlite" ] || { touch "$DATA_DIR/$f.sqlite"; chmod 664 "$DATA_DIR/$f.sqlite" 2>/dev/null || true; }
+done
+
+if ! grep -q '^DB_QUEUE_CONNECTION=' "$ENV_FILE"; then
+    cat >> "$ENV_FILE" << EOF
+DB_QUEUE_CONNECTION=sqlite_queue
+DB_QUEUE_DATABASE=$DATA_DIR/queue.sqlite
+DB_CACHE_CONNECTION=sqlite_cache
+DB_CACHE_LOCK_CONNECTION=sqlite_cache
+DB_CACHE_DATABASE=$DATA_DIR/cache.sqlite
+SESSION_CONNECTION=sqlite_sessions
+DB_SESSIONS_DATABASE=$DATA_DIR/sessions.sqlite
+EOF
+    cp "$ENV_FILE" "$DATA_DIR/.env_config"
+fi
+
+# Savvy <= 1.2 kept sessions and the cache in the container filesystem, so
+# every `docker compose pull` signed everyone out and dropped the cache. Move
+# them onto the data volume, matching what a fresh 1.3 install writes.
+if grep -q '^SESSION_DRIVER=file' "$ENV_FILE" || grep -q '^CACHE_STORE=file' "$ENV_FILE"; then
+    sed -i 's/^SESSION_DRIVER=file/SESSION_DRIVER=database/; s/^CACHE_STORE=file/CACHE_STORE=database/' "$ENV_FILE"
+    cp "$ENV_FILE" "$DATA_DIR/.env_config"
+fi
 
 php artisan migrate --force
+php artisan app:ensure-shards
 
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan event:cache
+
+php artisan currencies:update --no-interaction || true
 
 exec /usr/bin/supervisord -c /etc/supervisord.conf

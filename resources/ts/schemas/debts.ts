@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { numeric } from './numeric'
 
 export const debtSchema = z.object({
     name: z.string()
@@ -6,15 +7,12 @@ export const debtSchema = z.object({
         .max(255, 'Maximum 255 characters'),
 
     debt_type: z.enum(['i_owe', 'owed_to_me'], {
-        required_error: 'Please select debt type',
+        error: 'Please select debt type',
     }),
 
-    currency_id: z.coerce.number({
-        required_error: 'Please select currency',
-    }).positive('Please select currency'),
+    currency_id: numeric(z.number().positive('Please select currency')),
 
-    amount: z.coerce.number()
-        .positive('Amount must be greater than 0'),
+    amount: numeric(z.number().positive('Amount must be greater than 0')),
 
     due_date: z.string().optional(),
 
@@ -23,19 +21,18 @@ export const debtSchema = z.object({
     description: z.string().max(1000).optional(),
 })
 
-export type DebtFormData = z.infer<typeof debtSchema>
+export type DebtFormData = z.output<typeof debtSchema>
+export type DebtFormInput = z.input<typeof debtSchema>
 
 export const debtPaymentSchema = z.object({
-    account_id: z.coerce.number({
-        required_error: 'Please select account',
-    }).positive('Please select account'),
+    account_id: numeric(z.number().positive('Please select account')),
 
-    amount: z.coerce.number()
-        .positive('Amount must be greater than 0'),
+    amount: numeric(z.number().positive('Amount must be greater than 0')),
 
     date: z.string().min(1, 'Date is required'),
 
     description: z.string().max(1000).optional(),
 })
 
-export type DebtPaymentFormData = z.infer<typeof debtPaymentSchema>
+export type DebtPaymentFormData = z.output<typeof debtPaymentSchema>
+export type DebtPaymentFormInput = z.input<typeof debtPaymentSchema>

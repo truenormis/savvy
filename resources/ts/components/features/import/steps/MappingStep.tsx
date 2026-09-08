@@ -22,8 +22,8 @@ import type { CsvParseResult, ColumnMapping, ImportOptions, DateFormat, AmountFo
 import { useEffect } from 'react'
 
 const mappingSchema = z.object({
-    date: z.number({ required_error: 'Date column is required' }),
-    amount: z.number({ required_error: 'Amount column is required' }),
+    date: z.number({ error: 'Date column is required' }),
+    amount: z.number({ error: 'Amount column is required' }),
     description: z.number().nullable(),
     type: z.number().nullable(),
     category: z.number().nullable(),
@@ -31,7 +31,7 @@ const mappingSchema = z.object({
     currency: z.number().nullable(),
     dateFormat: z.string(),
     amountFormat: z.string(),
-    defaultAccountId: z.number({ required_error: 'Account is required' }),
+    defaultAccountId: z.number({ error: 'Account is required' }),
     defaultType: z.enum(['income', 'expense']),
 })
 

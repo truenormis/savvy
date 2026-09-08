@@ -12,9 +12,9 @@ import {
     FormControl,
     FormMessage,
 } from '@/components/ui/form'
-import { transactionSchema, TransactionFormValues } from '@/schemas/transactions'
+import { transactionSchema, TransactionFormValues, TransactionFormInput } from '@/schemas/transactions'
 import { useAccounts, useCategories, useTags } from '@/hooks'
-import { cn } from '@/lib/utils'
+import { cn, toId, formatAmount } from '@/lib/utils'
 import { Plus, Trash2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { AccountSelect } from '@/components/shared/AccountSelect'
@@ -27,12 +27,37 @@ const TRANSACTION_TYPES = [
     { value: 'transfer', label: 'Transfer', icon: ArrowLeftRight, color: 'text-blue-600' },
 ] as const
 
+interface EditedTransaction {
+    type: TransactionFormValues['type']
+    accountId: number
+    amount: number
+    toAccountId?: number | null
+    toAmount?: number | null
+}
+
 interface TransactionFormProps {
-    defaultValues?: Partial<TransactionFormValues>
+    defaultValues?: Partial<TransactionFormInput>
     onSubmit: (data: TransactionFormValues) => void
     onTypeChange?: (type: TransactionFormValues['type']) => void
     isSubmitting?: boolean
     submitLabel?: string
+    editing?: EditedTransaction
+}
+
+function ledgerEffect(tx: EditedTransaction | undefined, accountId: number): number {
+    if (!tx || !accountId) return 0
+
+    let effect = 0
+
+    if (tx.accountId === accountId) {
+        effect += tx.type === 'income' ? tx.amount : -tx.amount
+    }
+
+    if (tx.toAccountId === accountId) {
+        effect += tx.toAmount ?? tx.amount
+    }
+
+    return effect
 }
 
 export function TransactionForm({
@@ -41,6 +66,7 @@ export function TransactionForm({
     onTypeChange,
     isSubmitting,
     submitLabel = 'Save',
+    editing,
 }: TransactionFormProps) {
     const { data: accounts } = useAccounts({ active: true, exclude_debts: true })
     const { data: categories } = useCategories()
@@ -62,7 +88,7 @@ export function TransactionForm({
         }
     }, [defaultValues])
 
-    const form = useForm<TransactionFormValues>({
+    const form = useForm<TransactionFormInput, unknown, TransactionFormValues>({
         resolver: zodResolver(transactionSchema),
         defaultValues: formDefaults,
     })
@@ -193,7 +219,7 @@ export function TransactionForm({
     const balancePreview = useMemo(() => {
         if (!selectedAccount) return null
 
-        const currentBalance = selectedAccount.currentBalance
+        const currentBalance = selectedAccount.currentBalance - ledgerEffect(editing, selectedAccount.id)
         const txAmount = Number(amount) || 0
 
         let newBalance = currentBalance
@@ -212,13 +238,13 @@ export function TransactionForm({
             currency: selectedAccount.currency?.symbol ?? '',
             decimals: selectedAccount.currency?.decimals ?? 2,
         }
-    }, [selectedAccount, amount, transactionType])
+    }, [selectedAccount, amount, transactionType, editing])
 
     // Balance preview for destination account (transfer)
     const toBalancePreview = useMemo(() => {
         if (!selectedToAccount || transactionType !== 'transfer') return null
 
-        const currentBalance = selectedToAccount.currentBalance
+        const currentBalance = selectedToAccount.currentBalance - ledgerEffect(editing, selectedToAccount.id)
         const txAmount = Number(toAmount) || Number(amount) || 0
         const newBalance = currentBalance + txAmount
 
@@ -228,7 +254,7 @@ export function TransactionForm({
             currency: selectedToAccount.currency?.symbol ?? '',
             decimals: selectedToAccount.currency?.decimals ?? 2,
         }
-    }, [selectedToAccount, toAmount, amount, transactionType])
+    }, [selectedToAccount, toAmount, amount, transactionType, editing])
 
     return (
         <FormWrapper>
@@ -268,7 +294,7 @@ export function TransactionForm({
                                     {transactionType === 'transfer' ? 'From Account' : 'Account'}
                                 </FormLabel>
                                 <AccountSelect
-                                    value={field.value}
+                                    value={toId(field.value)}
                                     onChange={field.onChange}
                                 />
                                 <FormMessage />
@@ -285,7 +311,7 @@ export function TransactionForm({
                                 <FormItem>
                                     <FormLabel>To Account</FormLabel>
                                     <AccountSelect
-                                        value={field.value}
+                                        value={toId(field.value)}
                                         onChange={field.onChange}
                                         excludeId={Number(accountId)}
                                     />
@@ -302,7 +328,7 @@ export function TransactionForm({
                                 <FormItem>
                                     <FormLabel>Category</FormLabel>
                                     <CategorySelect
-                                        value={field.value}
+                                        value={toId(field.value)}
                                         onChange={field.onChange}
                                         type={transactionType as 'income' | 'expense'}
                                     />
@@ -322,7 +348,7 @@ export function TransactionForm({
                         <div className="flex-1">
                             <span className="text-muted-foreground">Balance: </span>
                             <span className="font-mono font-medium">
-                                {balancePreview.currentBalance.toFixed(balancePreview.decimals)} {balancePreview.currency}
+                                {formatAmount(balancePreview.currentBalance, balancePreview.decimals, balancePreview.currency)}
                             </span>
                         </div>
                         <span className="text-muted-foreground">→</span>
@@ -333,7 +359,7 @@ export function TransactionForm({
                                 balancePreview.insufficientFunds ? 'text-destructive' :
                                     balancePreview.newBalance > balancePreview.currentBalance ? 'text-green-600' : 'text-foreground'
                             )}>
-                                {balancePreview.newBalance.toFixed(balancePreview.decimals)} {balancePreview.currency}
+                                {formatAmount(balancePreview.newBalance, balancePreview.decimals, balancePreview.currency)}
                             </span>
                         </div>
                         {balancePreview.insufficientFunds && (
@@ -348,14 +374,14 @@ export function TransactionForm({
                         <div className="flex-1">
                             <span className="text-muted-foreground">To Balance: </span>
                             <span className="font-mono font-medium">
-                                {toBalancePreview.currentBalance.toFixed(toBalancePreview.decimals)} {toBalancePreview.currency}
+                                {formatAmount(toBalancePreview.currentBalance, toBalancePreview.decimals, toBalancePreview.currency)}
                             </span>
                         </div>
                         <span className="text-muted-foreground">→</span>
                         <div className="flex-1 text-right">
                             <span className="text-muted-foreground">After: </span>
                             <span className="font-mono font-medium text-green-600">
-                                {toBalancePreview.newBalance.toFixed(toBalancePreview.decimals)} {toBalancePreview.currency}
+                                {formatAmount(toBalancePreview.newBalance, toBalancePreview.decimals, toBalancePreview.currency)}
                             </span>
                         </div>
                     </div>

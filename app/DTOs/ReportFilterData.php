@@ -138,11 +138,37 @@ readonly class ReportFilterData
     {
         $start = $currentRange['start'];
         $end = $currentRange['end'];
-        $daysDiff = $start->diffInDays($end) + 1;
+
+        return match ($this->periodType) {
+            'month' => $this->wholeCalendarShift($start, fn (Carbon $d) => $d->subMonthNoOverflow(), 'startOfMonth', 'endOfMonth'),
+            'quarter' => $this->wholeCalendarShift($start, fn (Carbon $d) => $d->subQuarterNoOverflow(), 'startOfQuarter', 'endOfQuarter'),
+            'year' => $this->wholeCalendarShift($start, fn (Carbon $d) => $d->subYearNoOverflow(), 'startOfYear', 'endOfYear'),
+            'ytd' => [
+                'start' => $start->copy()->subYearNoOverflow()->startOfYear(),
+                'end' => $end->copy()->subYearNoOverflow()->endOfDay(),
+            ],
+            default => $this->getAdjacentRange($start, $end),
+        };
+    }
+
+    private function wholeCalendarShift(Carbon $start, callable $shift, string $startOf, string $endOf): array
+    {
+        $anchor = $shift($start->copy());
 
         return [
-            'start' => $start->copy()->subDays($daysDiff),
-            'end' => $end->copy()->subDays($daysDiff),
+            'start' => $anchor->copy()->{$startOf}(),
+            'end' => $anchor->copy()->{$endOf}(),
+        ];
+    }
+
+    private function getAdjacentRange(Carbon $start, Carbon $end): array
+    {
+        $lengthDays = (int) round($start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay())) + 1;
+        $prevEnd = $start->copy()->subDay()->endOfDay();
+
+        return [
+            'start' => $prevEnd->copy()->subDays($lengthDays - 1)->startOfDay(),
+            'end' => $prevEnd,
         ];
     }
 
@@ -163,25 +189,30 @@ readonly class ReportFilterData
     {
         $periods = [];
         $currentRange = $this->getDateRange();
+        $rangeDays = (int) round($currentRange['start']->copy()->startOfDay()->diffInDays($currentRange['end']->copy()->startOfDay())) + 1;
 
         for ($i = $count - 1; $i >= 0; $i--) {
             $periods[] = match ($this->periodType) {
-                'month' => [
-                    'start' => $currentRange['start']->copy()->subMonths($i),
-                    'end' => $currentRange['end']->copy()->subMonths($i),
+                'quarter' => $this->wholeCalendarShift(
+                    $currentRange['start']->copy()->subQuartersNoOverflow($i),
+                    fn (Carbon $d) => $d, 'startOfQuarter', 'endOfQuarter'
+                ),
+                'year' => $this->wholeCalendarShift(
+                    $currentRange['start']->copy()->subYearsNoOverflow($i),
+                    fn (Carbon $d) => $d, 'startOfYear', 'endOfYear'
+                ),
+                'custom' => [
+                    'start' => $currentRange['start']->copy()->subDays($rangeDays * $i)->startOfDay(),
+                    'end' => $currentRange['end']->copy()->subDays($rangeDays * $i)->endOfDay(),
                 ],
-                'quarter' => [
-                    'start' => $currentRange['start']->copy()->subQuarters($i),
-                    'end' => $currentRange['end']->copy()->subQuarters($i),
-                ],
-                'year' => [
-                    'start' => $currentRange['start']->copy()->subYears($i),
-                    'end' => $currentRange['end']->copy()->subYears($i),
-                ],
-                default => [
-                    'start' => $currentRange['start']->copy()->subMonths($i),
-                    'end' => $currentRange['end']->copy()->subMonths($i),
-                ],
+                'ytd' => $this->wholeCalendarShift(
+                    $currentRange['end']->copy()->subMonthsNoOverflow($i),
+                    fn (Carbon $d) => $d, 'startOfMonth', 'endOfMonth'
+                ),
+                default => $this->wholeCalendarShift(
+                    $currentRange['start']->copy()->subMonthsNoOverflow($i),
+                    fn (Carbon $d) => $d, 'startOfMonth', 'endOfMonth'
+                ),
             };
         }
 

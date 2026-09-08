@@ -31,13 +31,13 @@ class AutomationRuleLog extends Model
 
     public function triggerEntity(): ?Model
     {
-        if (!$this->trigger_entity_type || !$this->trigger_entity_id) {
+        if (! $this->trigger_entity_type || ! $this->trigger_entity_id) {
             return null;
         }
 
-        $modelClass = 'App\\Models\\' . $this->trigger_entity_type;
+        $modelClass = 'App\\Models\\'.$this->trigger_entity_type;
 
-        if (!class_exists($modelClass)) {
+        if (! class_exists($modelClass)) {
             return null;
         }
 

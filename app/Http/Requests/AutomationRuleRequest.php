@@ -19,10 +19,11 @@ class AutomationRuleRequest extends FormRequest
         if ($this->has('conditions.conditions')) {
             $conditions = $this->input('conditions.conditions');
             $normalized = collect($conditions)->map(function ($condition) {
-                if (isset($condition['operator']) && !isset($condition['op'])) {
+                if (isset($condition['operator']) && ! isset($condition['op'])) {
                     $condition['op'] = $condition['operator'];
                     unset($condition['operator']);
                 }
+
                 return $condition;
             })->all();
 

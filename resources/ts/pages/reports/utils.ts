@@ -51,13 +51,3 @@ export function getYearOptions() {
     }
     return years
 }
-
-// Format currency
-export function formatCurrency(val: number) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    }).format(val)
-}

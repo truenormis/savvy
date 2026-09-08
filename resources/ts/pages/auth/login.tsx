@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -20,10 +20,16 @@ import {
     InputOTPSlot,
     InputOTPSeparator,
 } from '@/components/ui/input-otp'
-import { Loader2, ArrowLeft, Key } from 'lucide-react'
+import { Loader2, ArrowLeft, Key, Fingerprint } from 'lucide-react'
+import {
+    browserSupportsWebAuthn,
+    browserSupportsWebAuthnAutofill,
+} from '@simplewebauthn/browser'
 import { useAuthStore } from '@/stores/auth'
 import { Logo } from '@/components/shared/Logo'
+import { SsoButtons } from '@/components/features/sso'
 import { authApi } from '@/api'
+import { passkeyErrorMessage, isPasskeyDomainSupported } from '@/hooks'
 import { toast } from 'sonner'
 
 const loginSchema = z.object({
@@ -35,22 +41,78 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
     const navigate = useNavigate()
+    const location = useLocation()
+    const [searchParams] = useSearchParams()
     const login = useAuthStore((state) => state.login)
     const loginWith2FA = useAuthStore((state) => state.loginWith2FA)
+    const loginWithPasskey = useAuthStore((state) => state.loginWithPasskey)
     const [isLoading, setIsLoading] = useState(false)
     const [checkingStatus, setCheckingStatus] = useState(true)
+    const [passwordLoginEnabled, setPasswordLoginEnabled] = useState(true)
     const [twoFactorToken, setTwoFactorToken] = useState<string | null>(null)
     const [otpValue, setOtpValue] = useState('')
     const [useRecoveryCode, setUseRecoveryCode] = useState(false)
     const [recoveryCode, setRecoveryCode] = useState('')
+    const [passkeyLoading, setPasskeyLoading] = useState(false)
+    const [passkeySupported] = useState(() => browserSupportsWebAuthn() && isPasskeyDomainSupported())
+    const autofillStarted = useRef(false)
 
     useEffect(() => {
         authApi.status().then((status) => {
             if (status.needs_registration) {
                 navigate('/setup', { replace: true })
             }
+            setPasswordLoginEnabled(status.password_login_enabled)
         }).finally(() => setCheckingStatus(false))
     }, [navigate])
+
+    // Resume the 2FA step when arriving from the SSO callback.
+    useEffect(() => {
+        const incoming = (location.state as { twoFactorToken?: string } | null)?.twoFactorToken
+        if (incoming) {
+            setTwoFactorToken(incoming)
+            navigate(location.pathname, { replace: true, state: null })
+        }
+    }, [location.state, location.pathname, navigate])
+
+    // Surface SSO errors bounced back to the login screen.
+    useEffect(() => {
+        if (searchParams.get('sso_error')) {
+            toast.error('Single sign-on failed. Please try again.')
+        }
+    }, [searchParams])
+
+    useEffect(() => {
+        if (checkingStatus || twoFactorToken || autofillStarted.current || !isPasskeyDomainSupported()) return
+        autofillStarted.current = true
+
+        let cancelled = false
+        browserSupportsWebAuthnAutofill().then((supported) => {
+            if (!supported || cancelled) return
+            loginWithPasskey({ useAutofill: true })
+                .then(() => {
+                    if (!cancelled) navigate('/')
+                })
+                .catch(() => {})
+        })
+
+        return () => {
+            cancelled = true
+        }
+    }, [checkingStatus, twoFactorToken, loginWithPasskey, navigate])
+
+    const handlePasskeyLogin = async (stepUpToken?: string) => {
+        setPasskeyLoading(true)
+        try {
+            await loginWithPasskey({ twoFactorToken: stepUpToken })
+            toast.success('Welcome back!')
+            navigate('/')
+        } catch (error: unknown) {
+            toast.error(passkeyErrorMessage(error, 'Passkey sign-in failed'))
+        } finally {
+            setPasskeyLoading(false)
+        }
+    }
 
     const form = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
@@ -179,6 +241,19 @@ export default function LoginPage() {
                                 {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
                                 Verify
                             </Button>
+                            {passkeySupported && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => handlePasskeyLogin(twoFactorToken)}
+                                    className="w-full"
+                                    disabled={passkeyLoading || isLoading}
+                                >
+                                    {passkeyLoading
+                                        ? <Loader2 className="mr-2 size-4 animate-spin" />
+                                        : <Fingerprint className="mr-2 size-4" />}
+                                    Use a passkey instead
+                                </Button>
+                            )}
                             <Button
                                 variant="ghost"
                                 onClick={() => {
@@ -220,7 +295,22 @@ export default function LoginPage() {
                         Sign in to your account to continue
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                    {passkeySupported && (
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => handlePasskeyLogin()}
+                            disabled={passkeyLoading}
+                        >
+                            {passkeyLoading
+                                ? <Loader2 className="mr-2 size-4 animate-spin" />
+                                : <Fingerprint className="mr-2 size-4" />}
+                            Sign in with a passkey
+                        </Button>
+                    )}
+                    <SsoButtons showDivider={passwordLoginEnabled} />
+                    {passwordLoginEnabled && (
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                             <FormField
@@ -233,7 +323,7 @@ export default function LoginPage() {
                                             <Input
                                                 type="email"
                                                 placeholder="you@example.com"
-                                                autoComplete="email"
+                                                autoComplete="username webauthn"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -267,6 +357,7 @@ export default function LoginPage() {
                             </Button>
                         </form>
                     </Form>
+                    )}
                 </CardContent>
             </Card>
         </div>

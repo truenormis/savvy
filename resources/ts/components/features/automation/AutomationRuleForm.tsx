@@ -26,7 +26,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { HelpCircle } from 'lucide-react'
-import { automationRuleSchema, type AutomationRuleSchema } from '@/schemas/automation'
+import { automationRuleSchema, type AutomationRuleSchema, type AutomationRuleInput } from '@/schemas/automation'
 import { useAutomationTriggers } from '@/hooks/use-automation'
 import { ConditionBuilder } from './ConditionBuilder'
 import { ActionBuilder } from './ActionBuilder'
@@ -48,7 +48,7 @@ export function AutomationRuleForm({
 }: AutomationRuleFormProps) {
     const { data: triggers } = useAutomationTriggers()
 
-    const form = useForm<AutomationRuleSchema>({
+    const form = useForm<AutomationRuleInput, unknown, AutomationRuleSchema>({
         resolver: zodResolver(automationRuleSchema),
         defaultValues: {
             name: '',

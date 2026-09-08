@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\Currency;
 use App\Models\Transaction;
+use App\Support\DateBoundary;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -58,13 +59,7 @@ class CategoryService
 
         $query = $category->transactions();
 
-        if ($startDate) {
-            $query->where('date', '>=', $startDate);
-        }
-
-        if ($endDate) {
-            $query->where('date', '<=', $endDate);
-        }
+        $this->applyDateFilter($query, $startDate, $endDate);
 
         return [
             'category_id' => $category->id,
@@ -88,12 +83,7 @@ class CategoryService
             ->select('transactions.category_id', DB::raw('SUM(transactions.amount * currencies.rate) as total_in_base'))
             ->groupBy('transactions.category_id');
 
-        if ($startDate) {
-            $query->where('transactions.date', '>=', $startDate);
-        }
-        if ($endDate) {
-            $query->where('transactions.date', '<=', $endDate);
-        }
+        $this->applyDateFilter($query, $startDate, $endDate, 'transactions.date');
 
         $totals = $query->pluck('total_in_base', 'category_id');
 
@@ -105,18 +95,19 @@ class CategoryService
             ->map(function ($category) use ($totals, $baseCurrency) {
                 $category->total_amount = (float) ($totals[$category->id] ?? 0);
                 $category->currency = $baseCurrency?->symbol ?? '';
+
                 return $category;
             });
     }
 
-    private function applyDateFilter($query, ?string $startDate, ?string $endDate): void
+    private function applyDateFilter($query, ?string $startDate, ?string $endDate, string $column = 'date'): void
     {
         if ($startDate) {
-            $query->where('date', '>=', $startDate);
+            $query->where($column, '>=', DateBoundary::start($startDate));
         }
 
         if ($endDate) {
-            $query->where('date', '<=', $endDate);
+            $query->where($column, '<=', DateBoundary::end($endDate));
         }
     }
 }

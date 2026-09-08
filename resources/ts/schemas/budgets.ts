@@ -1,14 +1,14 @@
 import { z } from 'zod'
+import { numeric } from './numeric'
 
 export const budgetSchema = z.object({
     name: z.string()
         .min(2, 'Minimum 2 characters')
         .max(100, 'Maximum 100 characters'),
 
-    amount: z.coerce.number()
-        .min(0.01, 'Amount must be greater than 0'),
+    amount: numeric(z.number().min(0.01, 'Amount must be greater than 0')),
 
-    currency_id: z.coerce.number().nullable().optional(),
+    currency_id: numeric(z.number()).nullable().optional(),
 
     period: z.enum(['weekly', 'monthly', 'yearly', 'one_time'], {
         message: 'Please select a period',
@@ -19,10 +19,7 @@ export const budgetSchema = z.object({
 
     is_global: z.boolean().default(false),
 
-    notify_at_percent: z.coerce.number()
-        .min(1).max(100)
-        .nullable()
-        .optional(),
+    notify_at_percent: numeric(z.number().min(1).max(100)).nullable().optional(),
 
     is_active: z.boolean().default(true),
 
@@ -31,4 +28,5 @@ export const budgetSchema = z.object({
     tag_ids: z.array(z.number()).default([]),
 })
 
-export type BudgetFormData = z.infer<typeof budgetSchema>
+export type BudgetFormData = z.output<typeof budgetSchema>
+export type BudgetFormInput = z.input<typeof budgetSchema>

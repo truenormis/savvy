@@ -3,11 +3,12 @@
 namespace App\Services\Import;
 
 use App\Models\Transaction;
-use Illuminate\Support\Collection;
+use App\Support\DateBoundary;
 
 class DuplicateChecker
 {
     private array $existingHashes = [];
+
     private array $importHashes = [];
 
     /**
@@ -18,11 +19,11 @@ class DuplicateChecker
         $query = Transaction::where('account_id', $accountId);
 
         if ($startDate) {
-            $query->where('date', '>=', $startDate);
+            $query->where('date', '>=', DateBoundary::start($startDate));
         }
 
         if ($endDate) {
-            $query->where('date', '<=', $endDate);
+            $query->where('date', '<=', DateBoundary::end($endDate));
         }
 
         $transactions = $query->get(['id', 'date', 'amount', 'description']);
@@ -99,7 +100,7 @@ class DuplicateChecker
         // Round amount to 2 decimal places for comparison
         $normalizedAmount = round($amount, 2);
 
-        return md5("{$normalizedDate}|{$normalizedAmount}|{$normalizedDescription}");
+        return md5("{$normalizedDate}|{$normalizedAmount}|{$normalizedDescription}", true);
     }
 
     /**

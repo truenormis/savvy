@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { numeric } from './numeric'
 
 export const accountSchema = z.object({
     name: z.string()
@@ -6,19 +7,15 @@ export const accountSchema = z.object({
         .max(255, 'Maximum 255 characters'),
 
     type: z.enum(['bank', 'crypto', 'cash'], {
-        required_error: 'Please select account type',
+        error: 'Please select account type',
     }),
 
-    currency_id: z.coerce.number({
-        required_error: 'Please select currency',
-    }).positive('Please select currency'),
+    currency_id: numeric(z.number().positive('Please select currency')),
 
-    initial_balance: z.coerce.number()
-        .min(0, 'Balance cannot be negative')
-        .optional()
-        .default(0),
+    initial_balance: numeric(z.number().min(0, 'Balance cannot be negative')).default(0),
 
-    is_active: z.boolean().optional().default(true),
+    is_active: z.boolean().default(true),
 })
 
-export type AccountFormData = z.infer<typeof accountSchema>
+export type AccountFormData = z.output<typeof accountSchema>
+export type AccountFormInput = z.input<typeof accountSchema>

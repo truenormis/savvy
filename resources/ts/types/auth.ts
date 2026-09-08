@@ -1,7 +1,10 @@
+export type UserRole = 'admin' | 'read-write' | 'read-only'
+
 export interface User {
     id: number
     name: string
     email: string
+    role: UserRole
 }
 
 export interface LoginCredentials {
@@ -17,7 +20,6 @@ export interface RegisterData {
 
 export interface AuthResponse {
     user: User
-    token: string
 }
 
 export interface TwoFactorAuthResponse {
@@ -27,6 +29,7 @@ export interface TwoFactorAuthResponse {
 
 export interface AuthStatus {
     needs_registration: boolean
+    password_login_enabled: boolean
 }
 
 // 2FA Types
@@ -53,4 +56,28 @@ export interface TwoFactorRecoveryCodesResponse {
 export interface TwoFactorRegenerateResponse {
     message: string
     recovery_codes: string[]
+}
+
+// Passkey (WebAuthn) Types
+import type {
+    PublicKeyCredentialCreationOptionsJSON,
+    PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/browser'
+
+export interface WebauthnCredentialSummary {
+    id: number
+    name: string | null
+    aaguid: string | null
+    last_used_at: string | null
+    created_at: string
+}
+
+export interface WebauthnRegisterOptions {
+    token: string
+    options: PublicKeyCredentialCreationOptionsJSON
+}
+
+export interface WebauthnLoginOptions {
+    token: string
+    options: PublicKeyCredentialRequestOptionsJSON
 }

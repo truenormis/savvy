@@ -18,7 +18,7 @@ export function formatAmount(
     symbol: string = '',
     showSymbol: boolean = true
 ): string {
-    const formatted = value.toFixed(decimals)
+    const formatted = formatNumber(value, decimals)
     return showSymbol && symbol ? `${formatted} ${symbol}` : formatted
 }
 
@@ -32,4 +32,27 @@ export function formatNumber(value: number, decimals: number = 2): string {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
     }).format(value)
+}
+
+export function toId(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null
+
+    const parsed = Number(value)
+
+    return Number.isNaN(parsed) ? null : parsed
+}
+
+export const APP_LOCALE = 'en-US'
+
+export function formatDate(
+    value: string | Date,
+    options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' }
+): string {
+    const date = value instanceof Date ? value : new Date(value)
+
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(APP_LOCALE, options)
+}
+
+export function formatShortDate(value: string | Date): string {
+    return formatDate(value, { month: 'short', day: 'numeric' })
 }

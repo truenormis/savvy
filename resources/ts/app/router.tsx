@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 const LoginPage = lazy(() => import('@/pages/auth/login'))
 const SetupPage = lazy(() => import('@/pages/auth/setup'))
 const Setup2FAPage = lazy(() => import('@/pages/auth/setup-2fa'))
+const SsoCallbackPage = lazy(() => import('@/pages/auth/sso-callback'))
 
 // Protected pages
 const DashboardPage = lazy(() => import('@/pages/dashboard'))
@@ -43,13 +44,17 @@ const UsersPage = lazy(() => import('@/pages/users'))
 const UserCreatePage = lazy(() => import('@/pages/users/create'))
 const UserEditPage = lazy(() => import('@/pages/users/[id]/edit'))
 const ReportsPage = lazy(() => import('@/pages/reports'))
+const MonitoringPage = lazy(() => import('@/pages/settings/monitoring'))
 const SystemSettingsPage = lazy(() => import('@/pages/settings/system'))
 const SecuritySettingsPage = lazy(() => import('@/pages/settings/security'))
 const ImportSettingsPage = lazy(() => import('@/pages/settings/import'))
 const BackupsSettingsPage = lazy(() => import('@/pages/settings/backups'))
+const ProvidersPage = lazy(() => import('@/pages/settings/providers'))
+const ProviderCreatePage = lazy(() => import('@/pages/settings/providers/create'))
+const ProviderEditPage = lazy(() => import('@/pages/settings/providers/[id]/edit'))
 const NotFoundPage = lazy(() => import('@/pages/not-found'))
 
-const withSuspense = (Component: React.LazyExoticComponent<() => JSX.Element>) => (
+const withSuspense = (Component: React.LazyExoticComponent<() => React.JSX.Element>) => (
     <ErrorBoundary>
         <Suspense fallback={
             <div className="flex items-center justify-center min-h-[200px]">
@@ -74,6 +79,10 @@ export const router = createBrowserRouter([
     {
         path: '/setup-2fa',
         element: withSuspense(Setup2FAPage),
+    },
+    {
+        path: '/auth/sso/callback',
+        element: withSuspense(SsoCallbackPage),
     },
 
     // Protected routes
@@ -118,9 +127,13 @@ export const router = createBrowserRouter([
                     { path: 'users/:id/edit', element: withSuspense(UserEditPage) },
                     { path: 'reports', element: withSuspense(ReportsPage) },
                     { path: 'settings/system', element: withSuspense(SystemSettingsPage) },
+                    { path: 'settings/monitoring', element: withSuspense(MonitoringPage) },
                     { path: 'settings/security', element: withSuspense(SecuritySettingsPage) },
                     { path: 'settings/import', element: withSuspense(ImportSettingsPage) },
                     { path: 'settings/backups', element: withSuspense(BackupsSettingsPage) },
+                    { path: 'settings/providers', element: withSuspense(ProvidersPage) },
+                    { path: 'settings/providers/create', element: withSuspense(ProviderCreatePage) },
+                    { path: 'settings/providers/:id/edit', element: withSuspense(ProviderEditPage) },
                 ],
             },
         ],

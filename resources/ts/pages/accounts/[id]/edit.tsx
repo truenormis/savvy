@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom'
 import { FormPage } from '@/components/shared'
 import { AccountForm } from '@/components/features/accounts'
 import { useAccount, useUpdateAccount } from '@/hooks'
+import type { RegularAccountType } from '@/types'
 
 export default function AccountEditPage() {
     const { id } = useParams<{ id: string }>()
@@ -11,7 +12,7 @@ export default function AccountEditPage() {
     const defaultValues = account
         ? {
               name: account.name,
-              type: account.type,
+              type: account.type as RegularAccountType,
               currency_id: account.currencyId,
               initial_balance: account.initialBalance,
               is_active: account.isActive,

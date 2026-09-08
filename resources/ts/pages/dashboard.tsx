@@ -34,7 +34,7 @@ import { Progress } from '@/components/ui/progress'
 import { useTotalBalance, useTransactions, useBalanceHistory, useAccounts, useCategorySummary, useBudgets, useDebtsWithSummary, useBalanceComparison, useUpcomingRecurring } from '@/hooks'
 import { useOverviewMetrics } from '@/hooks/use-reports'
 import type { ReportFilters } from '@/pages/reports/types'
-import { cn, formatAmount } from '@/lib/utils'
+import { cn, formatAmount, formatShortDate as formatDate } from '@/lib/utils'
 import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { useTheme } from '@/hooks/use-theme'
@@ -100,11 +100,6 @@ function getPresetDates(preset: PeriodPreset): { start_date: string; end_date: s
         default:
             return getPresetDates('this_month')
     }
-}
-
-function formatDate(dateString: string): string {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
 }
 
 function getTransactionSign(type: Transaction['type']): string {
@@ -918,10 +913,7 @@ export default function DashboardPage() {
                                         {recurring.amount.toFixed(recurring.account.currency?.decimals ?? 2)} {recurring.account.currency?.symbol}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        {new Date(recurring.nextRunDate).toLocaleDateString('en-US', {
-                                            month: 'short',
-                                            day: 'numeric'
-                                        })}
+                                        {formatDate(recurring.nextRunDate)}
                                     </p>
                                 </Link>
                             ))}

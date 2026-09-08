@@ -1,4 +1,4 @@
-import { Page, PageHeader, FormPage } from '@/components/shared'
+import { Page, PageHeader } from '@/components/shared'
 import { TagForm } from '@/components/features/tags'
 import { useCreateTag } from '@/hooks'
 
@@ -13,13 +13,11 @@ export default function CreateTagPage() {
                 backLink="/tags"
             />
 
-            <FormPage>
-                <TagForm
-                    onSubmit={createTag.mutate}
-                    isSubmitting={createTag.isPending}
-                    submitLabel="Create Tag"
-                />
-            </FormPage>
+            <TagForm
+                onSubmit={createTag.mutate}
+                isSubmitting={createTag.isPending}
+                submitLabel="Create Tag"
+            />
         </Page>
     )
 }

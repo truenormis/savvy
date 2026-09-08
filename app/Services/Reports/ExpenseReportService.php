@@ -21,8 +21,6 @@ class ExpenseReportService
         $startDate = $dateRange['start']->copy()->startOfDay();
         $endDate = $dateRange['end']->copy()->endOfDay();
 
-        $months = $this->splitIntoMonths($startDate, $endDate);
-
         $allDailyExpenses = $this->transactionRepository->getDailyTotals(
             'expense',
             $startDate,
@@ -34,30 +32,38 @@ class ExpenseReportService
         $budget = $this->budgetRepository->getMonthlyBudget($filters);
 
         $monthsData = [];
-        foreach ($months as $month) {
-            $monthStart = $month['start'];
-            $monthEnd = $month['end'];
-            $daysInMonth = $monthStart->diffInDays($monthEnd) + 1;
+        $cursor = $startDate->copy()->startOfMonth();
 
-            $cumulativeExpenses = $this->calculateCumulativeForMonth(
-                $allDailyExpenses,
-                $monthStart,
-                $daysInMonth
-            );
+        while ($cursor->lte($endDate)) {
+            if ($cursor->greaterThan($today) && ! $cursor->isSameMonth($today)) {
+                break;
+            }
 
-            $currentDay = $this->determineCurrentDay($today, $monthStart, $monthEnd);
-            $totalSpent = end($cumulativeExpenses) ?: 0;
+            $monthStart = $cursor->copy();
+            $daysInMonth = $monthStart->daysInMonth;
+
+            $cumulative = [];
+            $total = 0;
+            for ($i = 0; $i < $daysInMonth; $i++) {
+                $day = $monthStart->copy()->addDays($i);
+                if ($day->betweenIncluded($startDate, $endDate)) {
+                    $total += $allDailyExpenses[$day->toDateString()]['total'] ?? 0;
+                }
+                $cumulative[] = round($total, 2);
+            }
 
             $monthsData[] = [
                 'label' => $monthStart->format('M Y'),
                 'budget' => $budget,
-                'dailyExpenses' => $cumulativeExpenses,
-                'currentDay' => $currentDay,
+                'dailyExpenses' => $cumulative,
+                'currentDay' => $today->isSameMonth($monthStart) ? $today->day : null,
                 'daysInMonth' => $daysInMonth,
-                'totalSpent' => $totalSpent,
+                'totalSpent' => end($cumulative) ?: 0,
                 'monthStart' => $monthStart->toDateString(),
-                'monthEnd' => $monthEnd->toDateString(),
+                'monthEnd' => $monthStart->copy()->endOfMonth()->toDateString(),
             ];
+
+            $cursor->addMonthNoOverflow()->startOfMonth();
         }
 
         return [
@@ -93,7 +99,7 @@ class ExpenseReportService
             ];
         }
 
-        usort($categories, fn($a, $b) => $b['current'] <=> $a['current']);
+        usort($categories, fn ($a, $b) => $b['current'] <=> $a['current']);
 
         return [
             'categories' => $categories,
@@ -135,56 +141,5 @@ class ExpenseReportService
             'max' => round($max, 2),
             'currency' => Currency::getBase()?->symbol ?? '$',
         ];
-    }
-
-    private function splitIntoMonths(Carbon $startDate, Carbon $endDate): array
-    {
-        $months = [];
-        $current = $startDate->copy()->startOfMonth();
-
-        while ($current->lte($endDate)) {
-            $monthStart = $current->copy();
-            if ($monthStart->lt($startDate)) {
-                $monthStart = $startDate->copy();
-            }
-
-            $monthEnd = $current->copy()->endOfMonth()->startOfDay();
-            if ($monthEnd->gt($endDate)) {
-                $monthEnd = $endDate->copy()->startOfDay();
-            }
-
-            $months[] = [
-                'start' => $monthStart,
-                'end' => $monthEnd,
-            ];
-
-            $current->addMonth()->startOfMonth();
-        }
-
-        return $months;
-    }
-
-    private function calculateCumulativeForMonth(array $dailyExpenses, Carbon $monthStart, int $daysInMonth): array
-    {
-        $cumulative = [];
-        $total = 0;
-
-        for ($i = 0; $i < $daysInMonth; $i++) {
-            $date = $monthStart->copy()->addDays($i)->toDateString();
-            $dayExpense = $dailyExpenses[$date]['total'] ?? 0;
-            $total += $dayExpense;
-            $cumulative[] = round($total, 2);
-        }
-
-        return $cumulative;
-    }
-
-    private function determineCurrentDay(Carbon $today, Carbon $startDate, Carbon $endDate): ?int
-    {
-        if ($today->gte($startDate) && $today->lte($endDate)) {
-            return (int) $startDate->diffInDays($today) + 1;
-        }
-
-        return null;
     }
 }
