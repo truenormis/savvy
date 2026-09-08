@@ -28,7 +28,12 @@ class AuthenticateSession
         $request->attributes->set('auth_session', $session);
 
         $this->sessions->touch($session);
-        $rotated = $this->sessions->shouldRotate($session) ? $this->sessions->rotate($session) : null;
+
+        $onCurrentToken = $this->sessions->matchesCurrentToken($session, $token);
+
+        $rotated = $onCurrentToken && $this->sessions->shouldRotate($session)
+            ? $this->sessions->rotate($session)
+            : null;
 
         $response = $next($request);
 

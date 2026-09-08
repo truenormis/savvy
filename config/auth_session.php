@@ -23,4 +23,7 @@ return [
 
     // Rotate the session token after this many minutes of life (mitigates fixation/theft).
     'rotate_after' => (int) env('AUTH_SESSION_ROTATE_AFTER', 60),
+
+    // Grace period (seconds) during which the token/csrf superseded by a rotation still work.
+    'rotate_grace' => (int) env('AUTH_SESSION_ROTATE_GRACE', 120),
 ];

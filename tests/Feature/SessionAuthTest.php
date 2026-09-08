@@ -56,7 +56,7 @@ it('slides the idle window forward on use', function () {
 
 it('rotates the session token after the rotation threshold', function () {
     $issued = openSession(makeAuthUser());
-    $issued['session']->forceFill(['created_at' => now()->subHours(2)])->save();
+    $issued['session']->forceFill(['rotated_at' => now()->subHours(2)])->save();
     $oldHash = $issued['session']->token_hash;
 
     $response = $this->call('GET', '/api/auth/2fa/status', [], ['svy_session' => $issued['token']]);
@@ -65,8 +65,41 @@ it('rotates the session token after the rotation threshold', function () {
     $rotated = collect($response->headers->getCookies())->first(fn ($c) => $c->getName() === 'svy_session');
     expect($rotated)->not->toBeNull();
     expect($issued['session']->fresh()->token_hash)->not->toBe($oldHash);
+});
 
-    // The old token no longer resolves.
+it('rotates only once per threshold instead of on every request', function () {
+    $issued = openSession(makeAuthUser());
+    $issued['session']->forceFill(['rotated_at' => now()->subHours(2)])->save();
+
+    $first = $this->call('GET', '/api/auth/2fa/status', [], ['svy_session' => $issued['token']]);
+    $newToken = collect($first->headers->getCookies())->first(fn ($c) => $c->getName() === 'svy_session')->getValue();
+
+    $second = $this->call('GET', '/api/auth/2fa/status', [], ['svy_session' => $newToken]);
+    $second->assertOk();
+
+    expect(collect($second->headers->getCookies())->first(fn ($c) => $c->getName() === 'svy_session'))->toBeNull();
+});
+
+it('keeps the superseded token usable for the grace window', function () {
+    $issued = openSession(makeAuthUser());
+    $issued['session']->forceFill(['rotated_at' => now()->subHours(2)])->save();
+
+    $this->call('GET', '/api/auth/2fa/status', [], ['svy_session' => $issued['token']])->assertOk();
+
+    $this->call('GET', '/api/auth/2fa/status', [], ['svy_session' => $issued['token']])->assertOk();
+
+    $this->call('POST', '/api/auth/logout', [], ['svy_session' => $issued['token']], [], ['HTTP_X_CSRF_TOKEN' => $issued['csrf']])
+        ->assertOk();
+});
+
+it('stops accepting the superseded token once the grace window closes', function () {
+    $issued = openSession(makeAuthUser());
+    $issued['session']->forceFill(['rotated_at' => now()->subHours(2)])->save();
+
+    $this->call('GET', '/api/auth/2fa/status', [], ['svy_session' => $issued['token']])->assertOk();
+
+    $issued['session']->fresh()->forceFill(['previous_expires_at' => now()->subSecond()])->save();
+
     $this->call('GET', '/api/auth/2fa/status', [], ['svy_session' => $issued['token']])->assertStatus(401);
 });
 

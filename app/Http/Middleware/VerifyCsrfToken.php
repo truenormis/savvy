@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\AuthSession;
+use App\Services\Auth\AuthSessionService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -10,6 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 class VerifyCsrfToken
 {
     private const READ_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+
+    public function __construct(private AuthSessionService $sessions) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -20,7 +23,7 @@ class VerifyCsrfToken
         $session = $request->attributes->get('auth_session');
         $header = (string) $request->header(config('auth_session.csrf_header'));
 
-        if (! $session instanceof AuthSession || $header === '' || ! hash_equals($session->csrf, $header)) {
+        if (! $session instanceof AuthSession || ! $this->sessions->acceptsCsrf($session, $header)) {
             return response()->json(['message' => 'CSRF token mismatch.'], 419);
         }
 

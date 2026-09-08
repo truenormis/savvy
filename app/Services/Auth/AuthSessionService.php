@@ -26,6 +26,7 @@ class AuthSessionService
             'csrf' => $csrf,
             'ip' => $request->ip(),
             'user_agent' => Str::limit((string) $request->userAgent(), 500, ''),
+            'rotated_at' => now(),
             'last_used_at' => now(),
             'idle_expires_at' => now()->addMinutes((int) config('auth_session.idle_ttl')),
             'absolute_expires_at' => now()->addMinutes((int) config('auth_session.absolute_ttl')),
@@ -36,9 +37,33 @@ class AuthSessionService
 
     public function resolve(string $token): ?AuthSession
     {
-        $session = AuthSession::where('token_hash', $this->hash($token))->first();
+        $hash = $this->hash($token);
+
+        $session = AuthSession::where('token_hash', $hash)
+            ->orWhere(fn ($q) => $q->where('previous_token_hash', $hash)->where('previous_expires_at', '>', now()))
+            ->first();
 
         return $session?->isActive() ? $session : null;
+    }
+
+    public function matchesCurrentToken(AuthSession $session, string $token): bool
+    {
+        return hash_equals($session->token_hash, $this->hash($token));
+    }
+
+    public function acceptsCsrf(AuthSession $session, string $candidate): bool
+    {
+        if ($candidate === '') {
+            return false;
+        }
+
+        if (hash_equals($session->csrf, $candidate)) {
+            return true;
+        }
+
+        return $session->hasLiveGraceWindow()
+            && $session->previous_csrf !== null
+            && hash_equals($session->previous_csrf, $candidate);
     }
 
     /**
@@ -56,26 +81,53 @@ class AuthSessionService
 
     public function shouldRotate(AuthSession $session): bool
     {
-        return $session->created_at->addMinutes((int) config('auth_session.rotate_after'))->isPast();
+        if ($session->hasLiveGraceWindow()) {
+            return false;
+        }
+
+        $since = $session->rotated_at ?? $session->created_at;
+
+        return $since->addMinutes((int) config('auth_session.rotate_after'))->isPast();
     }
 
     /**
      * Issue a fresh token + csrf on the same session row, preserving the
-     * absolute lifetime. Returns the new raw token + csrf.
+     * absolute lifetime. The superseded pair stays valid for a short grace
+     * window so requests already in flight are not rejected.
      *
-     * @return array{token: string, csrf: string}
+     * Returns null when a concurrent request rotated the row first; that
+     * request's response carries the new pair, and this one stays valid
+     * through the grace window.
+     *
+     * @return array{token: string, csrf: string}|null
      */
-    public function rotate(AuthSession $session): array
+    public function rotate(AuthSession $session): ?array
     {
         $token = Str::random(48);
         $csrf = Str::random(40);
+        $now = now();
 
-        $session->forceFill([
-            'token_hash' => $this->hash($token),
-            'csrf' => $csrf,
-            'last_used_at' => now(),
-            'idle_expires_at' => now()->addMinutes((int) config('auth_session.idle_ttl'))->min($session->absolute_expires_at),
-        ])->save();
+        $claimed = AuthSession::where('id', $session->getKey())
+            ->where('token_hash', $session->token_hash)
+            ->update([
+                'previous_token_hash' => $session->token_hash,
+                'previous_csrf' => $session->csrf,
+                'previous_expires_at' => $now->copy()->addSeconds((int) config('auth_session.rotate_grace')),
+                'token_hash' => $this->hash($token),
+                'csrf' => $csrf,
+                'rotated_at' => $now,
+                'last_used_at' => $now,
+                'idle_expires_at' => $now->copy()->addMinutes((int) config('auth_session.idle_ttl'))->min($session->absolute_expires_at),
+                'updated_at' => $now,
+            ]);
+
+        if ($claimed === 0) {
+            $session->refresh();
+
+            return null;
+        }
+
+        $session->refresh();
 
         return ['token' => $token, 'csrf' => $csrf];
     }
