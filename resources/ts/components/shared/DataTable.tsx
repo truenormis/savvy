@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { cn } from '@/lib/utils'
 import {
     ColumnDef,
@@ -8,6 +8,7 @@ import {
     useReactTable,
     Row,
     getExpandedRowModel,
+    getFilteredRowModel,
 } from '@tanstack/react-table'
 import {
     Table,
@@ -33,7 +34,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { FileX, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { FileX, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 
 interface DataTableProps<T> {
     data: T[]
@@ -46,6 +48,8 @@ interface DataTableProps<T> {
     getRowCanExpand?: (row: Row<T>) => boolean
     getRowClassName?: (row: Row<T>) => string | undefined
     manualPagination?: boolean
+    searchColumn?: string
+    searchPlaceholder?: string
 }
 
 function DataTableSkeleton({ columns }: { columns: number }) {
@@ -186,11 +190,25 @@ export function DataTable<T>({
     getRowCanExpand,
     getRowClassName,
     manualPagination = false,
+    searchColumn,
+    searchPlaceholder = 'Search...',
 }: DataTableProps<T>) {
+    const [globalFilter, setGlobalFilter] = useState('')
+
     const table = useReactTable({
         data,
         columns,
+        state: searchColumn ? { globalFilter } : undefined,
+        onGlobalFilterChange: searchColumn ? setGlobalFilter : undefined,
+        globalFilterFn: searchColumn
+            ? (row, _columnId, value) => {
+                  const cell = row.getValue(searchColumn)
+
+                  return String(cell ?? '').toLowerCase().includes(String(value).toLowerCase())
+              }
+            : undefined,
         getCoreRowModel: getCoreRowModel(),
+        getFilteredRowModel: searchColumn ? getFilteredRowModel() : undefined,
         getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
         getExpandedRowModel: getExpandedRowModel(),
         getRowCanExpand,
@@ -212,6 +230,18 @@ export function DataTable<T>({
     }
 
     return (
+        <div className="space-y-3">
+            {searchColumn && (
+                <div className="relative max-w-sm">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        value={globalFilter}
+                        onChange={(event) => setGlobalFilter(event.target.value)}
+                        placeholder={searchPlaceholder}
+                        className="pl-9"
+                    />
+                </div>
+            )}
         <div className="rounded-lg border">
             <Table>
                 <TableHeader>
@@ -255,6 +285,7 @@ export function DataTable<T>({
                 </TableBody>
             </Table>
             {!manualPagination && <DataTablePagination table={table} />}
+        </div>
         </div>
     )
 }
