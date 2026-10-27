@@ -148,7 +148,7 @@ export interface TopTransactionItem {
         name: string
         icon: string
         color: string
-    }
+    } | null
     account: {
         id: number
         name: string
