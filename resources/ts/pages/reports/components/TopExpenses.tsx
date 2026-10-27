@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, CreditCard } from 'lucide-react'
 import { useTransactionReportTop } from '@/hooks'
 import { formatShortDate as formatDate } from '@/lib/utils'
 import type { ReportFilters } from '../types'
@@ -76,20 +76,24 @@ export function TopExpenses({ filters, limit = 10 }: TopExpensesProps) {
                                 {/* Category icon */}
                                 <div
                                     className="flex items-center justify-center size-9 rounded-lg flex-shrink-0"
-                                    style={{ backgroundColor: transaction.category.color }}
+                                    style={{ backgroundColor: transaction.category?.color ?? '#64748b' }}
                                 >
-                                    <span className="text-lg">{transaction.category.icon}</span>
+                                    {transaction.category ? (
+                                        <span className="text-lg">{transaction.category.icon}</span>
+                                    ) : (
+                                        <CreditCard className="size-4 text-white" />
+                                    )}
                                 </div>
 
                                 {/* Description and details */}
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium text-sm truncate">
-                                        {transaction.description || transaction.category.name}
+                                        {transaction.description || transaction.category?.name || 'Uncategorized'}
                                     </p>
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                         <span>{formatDate(transaction.date)}</span>
                                         <span>•</span>
-                                        <span>{transaction.category.name}</span>
+                                        <span>{transaction.category?.name || 'Uncategorized'}</span>
                                         <span>•</span>
                                         <span>{transaction.account.name}</span>
                                     </div>
