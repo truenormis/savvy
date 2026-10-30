@@ -146,12 +146,12 @@ export function TransactionForm({
         }
     }, [itemsTotal, items, form])
 
-    // Reset category when type changes
+    // Clear the category for transfers, including after a form reset
     useEffect(() => {
-        if (transactionType === 'transfer') {
+        if (transactionType === 'transfer' && categoryId != null) {
             form.setValue('category_id', null)
         }
-    }, [transactionType, form])
+    }, [transactionType, categoryId, form])
 
     // Refs for fast navigation
     const itemRefs = useRef<Map<string, HTMLInputElement>>(new Map())
@@ -304,6 +304,7 @@ export function TransactionForm({
                     {/* To Account (Transfer only) */}
                     {transactionType === 'transfer' ? (
                         <FormField
+                            key="to_account_id"
                             control={form.control}
                             name="to_account_id"
                             render={({ field }) => (
@@ -321,6 +322,7 @@ export function TransactionForm({
                     ) : (
                         /* Category (Income/Expense only) */
                         <FormField
+                            key="category_id"
                             control={form.control}
                             name="category_id"
                             render={({ field }) => (
@@ -419,6 +421,7 @@ export function TransactionForm({
                     {/* To Amount (Transfer only) or Date */}
                     {transactionType === 'transfer' ? (
                         <FormField
+                            key="to_amount"
                             control={form.control}
                             name="to_amount"
                             render={({ field }) => (
@@ -441,6 +444,7 @@ export function TransactionForm({
                         />
                     ) : (
                         <FormField
+                            key="date"
                             control={form.control}
                             name="date"
                             render={({ field }) => (
