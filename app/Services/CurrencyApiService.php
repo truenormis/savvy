@@ -11,6 +11,12 @@ class CurrencyApiService
 {
     protected string $apiUrl = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies';
 
+    /**
+     * Keyless fallback used when the CDN fails: ECB reference rates (~30 currencies),
+     * "Exchange rates by AllRatesToday" https://allratestoday.com
+     */
+    protected string $fallbackUrl = 'https://allratestoday.com/api/open/latest';
+
     protected string $catalogUrl = 'https://cdn.jsdelivr.net/gh/fawazahmed0/exchange-api@main/other/Common-Currency.json';
 
     public function getCatalog(): array
@@ -150,10 +156,34 @@ class CurrencyApiService
             Log::warning("Currency API request failed for {$code}", [
                 'status' => $response->status(),
             ]);
-
-            return null;
         } catch (\Exception $e) {
             Log::error("Currency API error: {$e->getMessage()}");
+        }
+
+        return $this->fetchFallbackRates($code, $timeout);
+    }
+
+    /**
+     * Fetch rates from the fallback source, reshaped like the CDN response
+     * (lowercase codes keyed by the base). Returns null if it fails too.
+     */
+    protected function fetchFallbackRates(string $code, int $timeout): ?array
+    {
+        try {
+            $response = Http::timeout($timeout)->get($this->fallbackUrl.'/'.strtoupper($code));
+            $rates = $response->successful() ? $response->json('rates') : null;
+
+            if (! is_array($rates)) {
+                Log::warning("Fallback currency API request failed for {$code}", [
+                    'status' => $response->status(),
+                ]);
+
+                return null;
+            }
+
+            return [$code => array_change_key_case($rates, CASE_LOWER)];
+        } catch (\Exception $e) {
+            Log::error("Fallback currency API error: {$e->getMessage()}");
 
             return null;
         }

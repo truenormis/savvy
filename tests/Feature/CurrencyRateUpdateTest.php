@@ -3,6 +3,7 @@
 use App\Enums\UserRole;
 use App\Models\Currency;
 use App\Models\User;
+use App\Services\CurrencyApiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 
@@ -130,4 +131,36 @@ it('does not call the API when auto-update is turned off', function () {
     ], rateUser())->assertOk();
 
     Http::assertNothingSent();
+});
+
+it('falls back to the secondary rate source when the CDN is unavailable', function () {
+    Currency::create([
+        'code' => 'USD',
+        'name' => 'US Dollar',
+        'symbol' => '$',
+        'is_base' => true,
+        'rate' => 1,
+    ]);
+    $eur = Currency::create([
+        'code' => 'EUR',
+        'name' => 'Euro',
+        'symbol' => '€',
+        'is_base' => false,
+        'rate' => 1.5,
+    ]);
+    Http::fake([
+        'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json' => Http::response('blocked', 403),
+        'https://allratestoday.com/api/open/latest/USD' => Http::response([
+            'result' => 'success',
+            'base_code' => 'USD',
+            'rates' => ['USD' => 1, 'EUR' => 0.85],
+        ], 200),
+    ]);
+
+    $result = app(CurrencyApiService::class)->updateRates();
+
+    expect($result['status'])->toBe('success')
+        ->and((float) $eur->fresh()->rate)->toBeGreaterThan(1.17)
+        ->and((float) $eur->fresh()->rate)->toBeLessThan(1.18);
+    Http::assertSent(fn ($request) => $request->url() === 'https://allratestoday.com/api/open/latest/USD');
 });
